@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Отзывы{% endblock %}
+{% block hero_title %}Отзывы{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    {% for review in reviews %}
+    <div class="ui-vstack gap-8" style="border:1px solid #eef2ff; border-radius:24px; padding:20px;">
+        <div class="ui-hstack justify-between">
+            <div class="ui-heading s primary">{{ review.name }} {{ review.surname }}</div>
+            <div class="ui-text semibold">
+                <img src="{{ url_for('static', filename='icons/golden_star.svg') }}" width="20" height="20" style="vertical-align: middle; margin-right: 4px;"> 
+                {{ review.rating }}
+            </div>
+        </div>
+        <p class="ui-text gray">{{ review.comment }}</p>
+        <div class="ui-text xs gray">{{ review.created_at.strftime('%d.%m.%Y') }}</div>
+    </div>
+    {% else %}
+    <div class="ui-text gray center">Отзывов пока нет</div>
+    {% endfor %}
+</div>
+{% endblock %}

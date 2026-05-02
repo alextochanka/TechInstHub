@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Редактирование проекта{% endblock %}
+{% block hero_title %}Редактирование{% endblock %}
+{% block content %}
+<form method="post" class="ui-vstack gap-24" style="max-width:700px; margin:0 auto;" enctype="multipart/form-data">
+    <div><label>Название</label><input type="text" name="title" value="{{ project.title }}" class="ui-input"></div>
+    <div><label>Описание</label><textarea name="description" rows="4" class="ui-input">{{ project.description or '' }}</textarea></div>
+    <div><label>Требования</label><textarea name="requirements" rows="3" class="ui-input">{{ project.requirements or '' }}</textarea></div>
+    <div><label>Задачи</label><textarea name="details" rows="3" class="ui-input">{{ project.details or '' }}</textarea></div>
+    <div><label>Тема</label>
+        <select name="topic_id" class="ui-input">
+            <option value="">-- Без темы --</option>
+            {% for topic in topics %}
+            <option value="{{ topic.id }}" {% if project.topic_id == topic.id %}selected{% endif %}>{{ topic.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div><label>Сложность</label>
+        <select name="difficulty" class="ui-input">
+            <option {% if project.difficulty == 'легкий' %}selected{% endif %}>легкий</option>
+            <option {% if project.difficulty == 'средний' %}selected{% endif %}>средний</option>
+            <option {% if project.difficulty == 'сложный' %}selected{% endif %}>сложный</option>
+        </select>
+    </div>
+    <div><label>Срок</label><input type="date" name="deadline" value="{{ project.deadline }}" class="ui-input"></div>
+    <div><label>Статус</label>
+        <select name="status" class="ui-input">
+            <option {% if project.status == 'открыт' %}selected{% endif %}>открыт</option>
+            <option {% if project.status == 'завершён' %}selected{% endif %}>завершён</option>
+        </select>
+    </div>
+    <div><label>Максимум студентов</label><input type="number" name="max_students" min="1" max="20" value="{{ project.max_students or 1 }}" class="ui-input"></div>
+    <div><label>Изображение</label><input type="file" name="image" accept="image/*" class="ui-input"></div>
+    {% if project.image_url %}<img src="{{ url_for('static', filename=project.image_url) }}" class="preview-img">{% endif %}
+    <button type="submit" class="ui-button primary m">Сохранить</button>
+</form>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Оставить отзыв{% endblock %}
+{% block hero_title %}Оставить отзыв{% endblock %}
+{% block content %}
+<form method="post" class="ui-vstack gap-24" style="max-width: 500px; margin: 0 auto;">
+    <div>
+        <label class="ui-text semibold">
+            {% if session.role == 'teacher' %}Студент{% else %}Преподаватель{% endif %}
+        </label>
+        <select name="recipient_id" class="ui-input" style="width:100%; padding:12px; border-radius:20px;">
+            {% for r in recipients %}
+            <option value="{{ r.id }}">{{ r.name }} {{ r.surname }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label class="ui-text semibold">Оценка (1–5)</label>
+        <select name="rating" class="ui-input" style="width:100%; padding:12px; border-radius:20px;">
+            <option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
+        </select>
+    </div>
+    <div>
+        <label class="ui-text semibold">Комментарий</label>
+        <textarea name="comment" rows="4" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></textarea>
+    </div>
+    <button type="submit" class="ui-button primary m">Отправить отзыв</button>
+</form>
+{% endblock %}

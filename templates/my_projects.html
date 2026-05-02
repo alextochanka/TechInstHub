@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Мои проекты{% endblock %}
+{% block hero_title %}Мои проекты{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    <a href="{{ url_for('add_project') }}" class="ui-button primary m">+ Создать проект</a>
+    {% for project in projects %}
+    <div class="ui-vstack gap-8" style="border: 1px solid #eef2ff; border-radius: 24px; padding: 20px;">
+        <div class="ui-heading s primary">{{ project.title }}</div>
+        <div class="ui-text gray">Статус: {{ project.status }}</div>
+        <div class="ui-text gray">Макс. студентов: {{ project.max_students }}</div>
+        <div class="ui-hstack gap-16">
+            <a href="{{ url_for('edit_project', project_id=project.id) }}" class="ui-button outline s">Редактировать</a>
+            <a href="{{ url_for('project_applications', project_id=project.id) }}" class="ui-button outline s">Заявки</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="ui-text gray center">У вас нет проектов</div>
+    {% endfor %}
+</div>
+{% endblock %}

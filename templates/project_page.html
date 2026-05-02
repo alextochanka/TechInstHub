@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Редактирование проекта — TechInstHub</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+</head>
+<body>
+<div class="nav-links"><a href="{{ url_for('index') }}">Главная</a><a href="{{ url_for('catalog') }}">Проекты</a><a href="{{ url_for('news_list') }}">Новости</a><a href="{{ url_for('profile') }}">Профиль</a><a href="{{ url_for('chats_list') }}">Сообщения</a></div>
+<div class="container" style="background: linear-gradient(135deg, #1E3A8A, #3B82F6); padding: 0 72px 64px;">
+    <div class="hero" style="padding-top:32px;"><div class="hero-content"><div class="hero-left"><h1 class="hero-title" style="color:#fff;">Редактирование проекта</h1></div></div></div>
+    <div class="content" style="background:#fff; border-radius:40px; max-width:800px; margin:0 auto; padding:32px;">
+        <div class="ui-vstack gap-20">
+            <div><label class="ui-heading xs">название проекта</label><input type="text" id="projectName" style="width:100%; padding:12px; border-radius:20px;" value="Дизайн мобильного приложения"></div>
+            <div><label class="ui-heading xs">короткое описание</label><input type="text" id="shortDescription" style="width:100%; padding:12px;" value="Разработка интерфейса"></div>
+            <div><label class="ui-heading xs">тема</label><select id="theme" style="width:100%; padding:12px;"><option>UI/UX</option><option>Web-разработка</option></select></div>
+            <div><label class="ui-heading xs">статус</label><div><label><input type="radio" name="status" value="завершен"> завершен</label><label><input type="radio" name="status" value="открыт" checked> открыт</label></div></div>
+            <button id="saveBtn" class="ui-button primary m" style="align-self:flex-end;">Изм.</button>
+            <hr>
+            <div><label><input type="checkbox" id="teacher1Checkbox"> написать преподавателю</label><div id="teacher1Message" style="display:none;"><textarea rows="3" style="width:100%;"></textarea><button class="ui-button s">отправить</button></div></div>
+            <div id="saveMessage" class="ui-text success"></div>
+        </div>
+    </div>
+    <footer class="footer">...</footer>
+</div>
+<script>
+    // скрипт сохранения в localStorage (можно оставить без изменений)
+    const projectName = document.getElementById('projectName');
+    const shortDescription = document.getElementById('shortDescription');
+    const theme = document.getElementById('theme');
+    const saveBtn = document.getElementById('saveBtn');
+    const saveMessage = document.getElementById('saveMessage');
+    saveBtn.addEventListener('click', () => {
+        localStorage.setItem('projectName', projectName.value);
+        localStorage.setItem('shortDescription', shortDescription.value);
+        localStorage.setItem('theme', theme.value);
+        saveMessage.textContent = '✓ Сохранено';
+        setTimeout(() => saveMessage.textContent = '', 3000);
+    });
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('projectName')) projectName.value = localStorage.getItem('projectName');
+        if (localStorage.getItem('shortDescription')) shortDescription.value = localStorage.getItem('shortDescription');
+        if (localStorage.getItem('theme')) theme.value = localStorage.getItem('theme');
+    });
+</script>
+</body>
+</html>

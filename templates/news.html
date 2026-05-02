@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Новости{% endblock %}
+{% block hero_title %}Новости платформы{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    {% for item in news %}
+    <div class="ui-hstack gap-24" style="background:#f8fafc; border-radius:32px; padding:20px;">
+        <div style="font-size:48px;">
+            <img src="{{ url_for('static', filename='icons/news.svg') }}" width="48" height="48" alt="Новость">
+            </div>
+        <div>
+            <div class="ui-heading s primary">{{ item.title }}</div>
+            <p class="ui-text gray">{{ item.content }}</p>
+            <span class="ui-text xs gray">{{ item.published_at.strftime('%d.%m.%Y') if item.published_at else '' }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="ui-text gray center">Новостей пока нет</div>
+    {% endfor %}
+</div>
+{% endblock %}

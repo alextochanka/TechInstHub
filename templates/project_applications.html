@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Заявки проекта{% endblock %}
+{% block hero_title %}Заявки на проект{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    {% for app in apps %}
+    <div class="ui-vstack gap-8" style="border: 1px solid #eef2ff; border-radius: 24px; padding: 20px;">
+        <div class="ui-heading s primary">{{ app.first_name }} {{ app.last_name }}</div>
+        <div class="ui-text gray">{{ app.email }}</div>
+        <div class="ui-text semibold">Статус: 
+            <span class="
+                {% if app.status == 'accepted' %}success
+                {% elif app.status == 'rejected' %}error
+                {% else %}blue{% endif %}
+            ">
+                {% if app.status == 'accepted' %}Принята
+                {% elif app.status == 'rejected' %}Отклонена
+                {% else %}Ожидает{% endif %}
+            </span>
+        </div>
+        <div class="ui-text xs gray">Подана: {{ app.applied_at.strftime('%d.%m.%Y') if app.applied_at else '' }}</div>
+        
+        {% if app.status == 'pending' %}
+        <div class="ui-hstack gap-16" style="margin-top: 8px;">
+            <form method="post" action="{{ url_for('update_application', app_id=app.id, status='accepted') }}" style="display: inline;">
+                <button type="submit" class="ui-button success s" onclick="return confirm('Принять заявку?')">✅ Принять</button>
+            </form>
+            <form method="post" action="{{ url_for('update_application', app_id=app.id, status='rejected') }}" style="display: inline;">
+                <button type="submit" class="ui-button error s" onclick="return confirm('Отклонить заявку?')">❌ Отклонить</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="ui-text gray center">Заявок пока нет</div>
+    {% endfor %}
+</div>
+{% endblock %}

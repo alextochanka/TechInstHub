@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TechInstHub{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+<body>
+    <div class="nav-links">
+        <!-- Стрелки навигации (слева от логотипа) -->
+        <a href="javascript:history.back()" class="nav-arrow" title="Назад">
+            <img src="{{ url_for('static', filename='icons/arrow-left.svg') }}" width="28" height="28" alt="Назад">
+        </a>
+        <a href="javascript:history.forward()" class="nav-arrow" title="Вперёд">
+            <img src="{{ url_for('static', filename='icons/arrow-right.svg') }}" width="28" height="28" alt="Вперёд">
+        </a>
+        <!-- Логотип (иконка чатов) теперь справа от стрелок -->
+        <a href="{{ url_for('chats_list') }}" class="logo-link">
+            <img src="{{ url_for('static', filename='icons/logo.svg') }}" width="28" height="28" alt="Чаты">
+        </a>
+        <a href="{{ url_for('index') }}">Главная</a>
+        <a href="{{ url_for('catalog') }}">Проекты</a>
+        <a href="{{ url_for('news_list') }}">Новости</a>
+        {% if session.user_id %}
+            <a href="{{ url_for('profile') }}">Профиль</a>
+            <a href="{{ url_for('chats_list') }}">Сообщения</a>
+            {% if session.role == 'admin' %}
+                <a href="{{ url_for('admin_dashboard') }}">Администратор</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Выйти</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Вход</a>
+            <a href="{{ url_for('register') }}">Регистрация</a>
+        {% endif %}
+    </div>
+    <div class="container">
+        <div class="hero">
+            <div class="hero-content">
+                <div class="hero-left">
+                    <h1 class="hero-title">{% block hero_title %}TechInstHub{% endblock %}</h1>
+                </div>
+            </div>
+        </div>
+        <div class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="ui-text s {{ 'error' if category == 'error' else 'success' if category == 'success' else 'primary' }}" style="margin-bottom: 24px;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+        <footer class="footer">
+            <div class="ui-hstack justify-between align-center" style="padding: 32px 42px; color: #fff; flex-wrap: wrap; gap: 16px;">
+                <div class="ui-hstack gap-16">
+                </div>
+                <div class="ui-text m">© 2026 TechInstHub</div>
+                <div class="ui-hstack gap-24">
+                    <a href="{{ url_for('index') }}" style="color:#fff;">Главная</a>
+                    <a href="{{ url_for('catalog') }}" style="color:#fff;">Проекты</a>
+                    <a href="{{ url_for('news_list') }}" style="color:#fff;">Новости</a>
+                </div>
+                <div class="ui-hstack gap-16">
+                    <a href="#" style="color:#fff;"><img src="{{ url_for('static', filename='icons/max.svg') }}" width="24" height="24" alt="MAX"></a>
+                    <a href="#" style="color:#fff;"><img src="{{ url_for('static', filename='icons/vk.svg') }}" width="24" height="24" alt="Вконтакте"></a>
+                </div>
+                <div class="ui-text">
+                    <img src="{{ url_for('static', filename='icons/email.svg') }}" width="20" height="20" alt="Email" style="vertical-align: middle;"> support@techinsthub.com
+                </div>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

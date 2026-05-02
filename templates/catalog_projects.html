@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Каталог проектов — TechInstHub{% endblock %}
+{% block hero_title %}Каталог проектов{% endblock %}
+{% block content %}
+<div class="ui-hstack align-start gap-32" style="flex-wrap: wrap;">
+    <div style="flex: 2; overflow-x: auto;">
+        <div class="ui-hstack gap-24" style="display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 16px;">
+            {% for project in projects %}
+            <div class="project-card" style="flex: 0 0 320px; border:1px solid #eef2ff; border-radius:24px; padding:24px; display:flex; flex-direction:column; justify-content:space-between;">
+                {% if project.image_url %}
+                <img src="{{ url_for('static', filename=project.image_url) }}" style="width:100%; height:180px; object-fit:cover; border-radius:16px; margin-bottom:16px;">
+                {% else %}
+                <div style="width:100%; height:180px; background:#eef2ff; border-radius:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:center;">
+                    <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="48" height="48" alt="Нет фото">
+                </div>
+                {% endif %}
+                <div>
+                    <div class="ui-text xs gray" style="border:1px solid #e2e8f0; display:inline-block; padding:4px 12px; border-radius:40px; margin-bottom:12px;">
+                        <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="16" height="16" style="vertical-align:middle;"> срок: {{ project.deadline if project.deadline else '—' }}
+                    </div>
+                    <div class="ui-heading s primary" style="margin:12px 0 8px;">{{ project.title }}</div>
+                    <p class="ui-text s gray" style="flex-grow:1;">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+                    <div class="ui-text s semibold">преподаватель: {{ project.name }} {{ project.surname }}</div>
+                    <div class="ui-text xs">👥 Мест: {{ project.accepted_count|default(0) }} / {{ project.max_students }}</div>
+                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-link primary">Подробнее</a>
+                </div>
+            </div>
+            {% else %}
+            <div class="ui-text gray center">Нет проектов</div>
+            {% endfor %}
+        </div>
+    </div>
+    <div style="flex: 1; background:#fff; border-radius:24px; border:1px solid #eef2ff; padding:24px;">
+        <div class="ui-heading s blue">Фильтры</div>
+        <div class="ui-vstack gap-16" style="margin-top:24px;">
+            <form method="get" action="{{ url_for('catalog') }}" id="searchForm">
+                <div class="ui-vstack gap-8">
+                    <label class="ui-text semibold">Название проекта</label>
+                    <div class="ui-hstack gap-8" style="align-items: center;">
+                        <input type="text" name="search" value="{{ search_query or '' }}" 
+                               placeholder="Введите название..." 
+                               class="ui-input" style="flex:1; padding:10px; border-radius:40px;">
+                        <button type="submit" class="ui-button outline s" style="padding:8px 12px;">
+                            <img src="{{ url_for('static', filename='icons/search.svg') }}" 
+                                 width="24" height="24" alt="Поиск">
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <hr style="margin: 8px 0;">
+            <div class="ui-text semibold">Тема</div>
+            <form method="get" action="{{ url_for('catalog') }}" id="filterForm">
+                <select name="topic" class="ui-input" style="width:100%; padding:10px; border-radius:40px;" onchange="this.form.submit()">
+                    <option value="">Все темы</option>
+                    {% for topic in topics %}
+                    <option value="{{ topic.id }}" {% if selected_topic|string == topic.id|string %}selected{% endif %}>{{ topic.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if search_query %}
+                <input type="hidden" name="search" value="{{ search_query }}">
+                {% endif %}
+            </form>
+        </div>
+        <div class="ui-vstack gap-16" style="margin-top:24px;">
+            <div class="ui-text semibold">Сложность</div>
+            <label><input type="radio" name="complexity"> сложный</label>
+            <label><input type="radio" name="complexity"> средний</label>
+            <label><input type="radio" name="complexity" checked> лёгкий</label>
+        </div>
+        <button class="ui-button primary m" style="width:100%; margin-top:24px;">Применить фильтры</button>
+    </div>
+</div>
+{% endblock %}

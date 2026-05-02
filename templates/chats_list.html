@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Сообщения{% endblock %}
+{% block hero_title %}Чаты{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-16">
+    {% for chat in chats %}
+    <a href="{{ url_for('chat', chat_id=chat.id) }}" class="ui-vstack gap-4" style="border:1px solid #eef2ff; border-radius:24px; padding:16px; text-decoration:none; color:inherit;">
+        <div class="ui-heading s">{{ chat.name or 'Чат' }}</div>
+        <div class="ui-text gray">{{ chat.last_message or 'Нет сообщений' }}</div>
+        {% if chat.unread > 0 %}<span class="ui-text error">Новых: {{ chat.unread }}</span>{% endif %}
+    </a>
+    {% else %}
+    <div class="ui-text gray center">У вас пока нет чатов</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Профиль{% endblock %}
+{% block hero_title %}{{ user.name }} {{ user.surname }}{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-32 align-center" style="max-width: 700px; margin: 0 auto;">
+    <div class="ui-vstack gap-12 align-center">
+        <div class="ui-heading xl blue">
+            <img src="{{ url_for('static', filename='icons/star.svg') }}" width="40" height="40" style="vertical-align: middle;"> {{ user.rating or 0 }}
+        </div>
+        <div class="ui-text semibold">{{ user.email }}</div>
+        {% if session.role == 'student' %}
+            <div class="ui-text">Курс: {{ student_info.course if student_info else '—' }}</div>
+            <div class="ui-text">Активных проектов: {{ active_projects }}</div>
+            <div class="ui-text">Завершённых проектов: {{ completed_projects }}</div>
+            <div class="ui-text">Всего заявок: {{ total_applications }}</div>
+        {% else %}
+            <div class="ui-text">Проектов создано: {{ projects_count }}</div>
+            <div class="ui-text">Завершённых проектов: {{ completed_projects }}</div>
+        {% endif %}
+    </div>
+    <hr style="width:100%;">
+
+    <form method="post" class="ui-vstack gap-16" style="width:100%;">
+        <div class="ui-heading s blue">О себе</div>
+        <textarea name="about" rows="6" class="ui-input" style="width:100%; padding:16px; border-radius:24px; font-family: 'Inter', sans-serif;">{{ user.about or '' }}</textarea>
+        <button type="submit" class="ui-button primary m" style="align-self:center;">Сохранить</button>
+    </form>
+
+    <div class="ui-hstack justify-center gap-20" style="flex-wrap:wrap;">
+        {% if session.role == 'student' %}
+            <a href="{{ url_for('my_applications') }}" class="ui-button outline m">Мои заявки</a>
+            <a href="{{ url_for('view_reviews', user_id=session.user_id) }}" class="ui-button outline m">Отзывы обо мне</a>
+            <a href="{{ url_for('reviews') }}" class="ui-button outline m">Оставить отзыв</a>
+        {% else %}
+            <a href="{{ url_for('my_projects') }}" class="ui-button outline m">Мои проекты</a>
+            <a href="{{ url_for('view_reviews', user_id=session.user_id) }}" class="ui-button outline m">Отзывы обо мне</a>
+            <a href="{{ url_for('reviews') }}" class="ui-button outline m">Оставить отзыв</a>
+        {% endif %}
+        <a href="{{ url_for('chats_list') }}" class="ui-button outline m">Сообщения</a>
+    </div>
+</div>
+{% endblock %}
