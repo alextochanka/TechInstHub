@@ -1,18 +1,29 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from dotenv import load_dotenv
+import traceback
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Blueprint  # ← Добавили
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'секретный-ключ-по-умолчанию')
+
+app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-in-production')
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
+
+jwt = JWTManager(app)
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -1002,8 +1013,227 @@ def logout():
     flash('Вы вышли из системы.', 'info')
     return redirect(url_for('login'))
 
-# ----- Запуск -----
+app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY', 'super-secret-key-change-in-production')
+jwt = JWTManager(app)
+
+# ====================== API ======================
+
+def get_db_connection_api():
+    """Переиспользуем существующее подключение"""
+    return get_db_connection()
+
+
+api = Blueprint('api', __name__, url_prefix='/api/v1')
+
+# --------------------- Auth ---------------------
+@api.route('/register', methods=['POST'])
+def api_register():
+    data = request.get_json(silent=True) or {}
+    
+    first_name = data.get("first_name") or data.get("name")
+    last_name = data.get("last_name") or data.get("surname")
+    email = data.get("email")
+    password = data.get("password")
+    course = data.get("course")
+    group_number = data.get("group_number") or data.get("group")
+
+    if not all([email, password, first_name, last_name]):
+        return jsonify({"error": "Не все обязательные поля заполнены"}), 400
+
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        if cur.fetchone():
+            return jsonify({"error": "Пользователь с таким email уже существует"}), 409
+
+        hashed = generate_password_hash(password)
+        user_id = str(uuid.uuid4())
+
+        cur.execute("""
+            INSERT INTO users (id, email, password_hash, first_name, last_name, group_number, 
+                             course, role, is_active, is_verified, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'student', TRUE, FALSE, NOW(), NOW())
+            RETURNING id
+        """, (user_id, email, hashed, first_name, last_name, group_number, course))
+
+        student_id_number = f"STU{datetime.now().strftime('%Y%m%d')}{user_id[:8]}"
+        cur.execute("""
+            INSERT INTO students (user_id, student_id, course, created_at, updated_at)
+            VALUES (%s, %s, %s, NOW(), NOW())
+        """, (user_id, student_id_number, course))
+
+        conn.commit()
+
+        token = create_access_token(identity=user_id)
+        return jsonify({
+            "message": "Регистрация успешна",
+            "token": token,
+            "user": {
+                "id": user_id,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "role": "student"
+            }
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        traceback.print_exc()
+        return jsonify({"error": "Ошибка сервера", "details": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@api.route('/login', methods=['POST'])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Email и пароль обязательны"}), 400
+
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id, password_hash, role FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+
+        if not user or not check_password_hash(user['password_hash'], password):
+            return jsonify({"error": "Неверные данные"}), 401
+
+        token = create_access_token(identity=str(user['id']))
+        return jsonify({
+            "message": "Вход выполнен",
+            "token": token,
+            "role": user['role']
+        }), 200
+    finally:
+        cur.close()
+        conn.close()
+
+
+@api.route('/profile', methods=['GET'])
+@jwt_required()
+def api_profile():
+    user_id = get_jwt_identity()
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, email, first_name, last_name, about, role, course, 
+                   group_number, created_at, is_active
+            FROM users WHERE id = %s
+        """, (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({"error": "Пользователь не найден"}), 404
+        return jsonify(dict(user)), 200
+    finally:
+        cur.close()
+        conn.close()
+
+
+@api.route('/profile', methods=['PATCH'])
+@jwt_required()
+def api_update_profile():
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+    about = data.get("about")
+
+    if about is None:
+        return jsonify({"error": "Поле 'about' обязательно"}), 400
+
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            UPDATE users SET about = %s, updated_at = NOW()
+            WHERE id = %s
+            RETURNING id, email, first_name, last_name, about, role
+        """, (about, user_id))
+        updated = cur.fetchone()
+        conn.commit()
+        return jsonify(dict(updated)), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# --------------------- Projects ---------------------
+@api.route('/projects', methods=['GET'])
+def api_get_projects():
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT p.id, p.title, p.description, p.difficulty, p.deadline, p.status, 
+                   p.max_students,
+                   u.first_name || ' ' || u.last_name AS tutor,
+                   (SELECT image_url FROM images 
+                    WHERE entity_type='project' AND entity_id=p.id 
+                    ORDER BY sort_order LIMIT 1) AS image_url
+            FROM projects p
+            JOIN users u ON p.id_tutor = u.id
+            WHERE p.status = 'открыт'
+            ORDER BY p.created_at DESC
+        """)
+        projects = cur.fetchall()
+        return jsonify([dict(p) for p in projects])
+    finally:
+        cur.close()
+        conn.close()
+
+
+@api.route('/projects', methods=['POST'])
+@jwt_required()
+def api_create_project():
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    title = data.get("title")
+    description = data.get("description")
+    if not title or not description:
+        return jsonify({"error": "title и description обязательны"}), 400
+
+    conn = get_db_connection_api()
+    cur = conn.cursor()
+    try:
+        project_id = str(uuid.uuid4())
+        cur.execute("""
+            INSERT INTO projects (id, id_tutor, title, description, status, 
+                                difficulty, deadline, max_students, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, 'открыт', %s, %s, %s, NOW(), NOW())
+            RETURNING id, title, description, status
+        """, (project_id, user_id, title, description,
+              data.get("difficulty", "средний"),
+              data.get("deadline"),
+              data.get("max_students", 1)))
+        
+        project = cur.fetchone()
+        conn.commit()
+        return jsonify({"message": "Проект создан", "project": dict(project)}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+# Регистрация Blueprint
+app.register_blueprint(api)
+
+# ====================== ЗАПУСК ======================
 if __name__ == '__main__':
     ensure_max_students_column()
     create_admin_if_not_exists()
+    print("🚀 Сервер запущен: http://127.0.0.1:5000")
+    print("📡 API доступно по префиксу /api/v1")
     app.run(debug=True)
