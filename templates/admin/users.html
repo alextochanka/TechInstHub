@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Управление пользователями{% endblock %}
+{% block hero_title %}Пользователи{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    <a href="{{ url_for('admin_add_user') }}" class="ui-button primary m" style="align-self: flex-start;">+ Добавить пользователя</a>
+    <div class="ui-vstack gap-16">
+        {% for user in users %}
+        <div class="ui-hstack justify-between align-center" style="border:1px solid #eef2ff; border-radius:24px; padding:16px;">
+            <div>
+                <div class="ui-heading s">{{ user.name }} {{ user.surname }}</div>
+                <div class="ui-text gray">{{ user.email }}</div>
+                <div class="ui-text xs">Роль: {{ user.role }} | Рейтинг: {{ user.rating or 0 }}</div>
+            </div>
+            <div class="ui-hstack gap-12">
+                <a href="{{ url_for('admin_delete_user', user_id=user.id) }}" class="ui-button error s" onclick="return confirm('Удалить?')">Удалить</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}SQL-запросы{% endblock %}
+{% block hero_title %}Выполнить запрос{% endblock %}
+{% block content %}
+<form method="post" class="ui-vstack gap-16">
+    <textarea name="query" rows="6" class="ui-input" style="width:100%; padding:12px; border-radius:20px;" placeholder="SELECT * FROM users LIMIT 10"></textarea>
+    <button type="submit" class="ui-button primary m" style="align-self:flex-start;">Выполнить</button>
+</form>
+{% if error %}
+<div class="ui-text error">{{ error }}</div>
+{% endif %}
+{% if result %}
+<div class="ui-heading s">Результат:</div>
+<div style="overflow-x:auto;">
+    <table class="ui-table" style="border-collapse:collapse; width:100%;">
+        <thead><tr>{% for key in result[0].keys() %}<th style="border:1px solid #ddd; padding:8px;">{{ key }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in result %}<tr>{% for val in row.values() %}<td style="border:1px solid #ddd; padding:8px;">{{ val }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

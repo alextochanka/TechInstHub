@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель — TechInstHub{% endblock %}
+{% block hero_title %}Администрирование{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-32">
+    <div class="ui-heading m blue">Статистика платформы</div>
+    <div class="ui-hstack gap-24" style="flex-wrap: wrap;">
+        <div class="ui-vstack align-center gap-12" style="flex:1; background:#f8fafc; border-radius:24px; padding:24px;">
+            <div class="ui-heading l blue">{{ users_cnt }}</div>
+            <div class="ui-text gray">Пользователей</div>
+        </div>
+        <div class="ui-vstack align-center gap-12" style="flex:1; background:#f8fafc; border-radius:24px; padding:24px;">
+            <div class="ui-heading l blue">{{ projects_cnt }}</div>
+            <div class="ui-text gray">Проектов</div>
+        </div>
+        <div class="ui-vstack align-center gap-12" style="flex:1; background:#f8fafc; border-radius:24px; padding:24px;">
+            <div class="ui-heading l blue">{{ apps_cnt }}</div>
+            <div class="ui-text gray">Заявок</div>
+        </div>
+        <div class="ui-vstack align-center gap-12" style="flex:1; background:#f8fafc; border-radius:24px; padding:24px;">
+            <div class="ui-heading l blue">{{ reviews_cnt }}</div>
+            <div class="ui-text gray">Отзывов</div>
+        </div>
+    </div>
+    <div class="ui-hstack justify-center gap-20" style="margin-top:32px; flex-wrap:wrap;">
+        <!-- Теперь кнопка "Управление пользователями" имеет класс outline, как и остальные -->
+        <a href="{{ url_for('admin_users') }}" class="ui-button outline m" style="display: inline-flex; align-items: center; gap: 8px;">
+            <img src="{{ url_for('static', filename='icons/users.svg') }}" width="20" height="20" alt=""> Управление пользователями
+        </a>
+        <a href="{{ url_for('admin_topics') }}" class="ui-button outline m" style="display: inline-flex; align-items: center; gap: 8px;">
+            <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="20" height="20" alt=""> Темы проектов
+        </a>
+        <a href="{{ url_for('admin_news_list') }}" class="ui-button outline m" style="display: inline-flex; align-items: center; gap: 8px;">
+            <img src="{{ url_for('static', filename='icons/news.svg') }}" width="20" height="20" alt=""> Новости
+        </a>
+        <a href="{{ url_for('admin_query') }}" class="ui-button outline m" style="display: inline-flex; align-items: center; gap: 8px;">
+            <img src="{{ url_for('static', filename='icons/sql.svg') }}" width="20" height="20" alt=""> SQL-запросы
+        </a>
+        <a href="{{ url_for('admin_logs') }}" class="ui-button outline m" style="display: inline-flex; align-items: center; gap: 8px;">
+            <img src="{{ url_for('static', filename='icons/logs.svg') }}" width="20" height="20" alt=""> Действия в системе
+        </a>
+    </div>
+</div>
+{% endblock %}

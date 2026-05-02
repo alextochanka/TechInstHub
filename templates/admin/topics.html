@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Управление темами{% endblock %}
+{% block hero_title %}Темы проектов{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-32" style="max-width: 600px; margin: 0 auto;">
+    <form method="post" action="{{ url_for('admin_add_topic') }}" class="ui-hstack gap-16">
+        <input type="text" name="name" placeholder="Название темы" required class="ui-input" style="flex:1; padding:12px; border-radius:20px;">
+        <button type="submit" class="ui-button primary m">Добавить</button>
+    </form>
+    <div class="ui-vstack gap-16">
+        <h3 class="ui-heading s">Существующие темы</h3>
+        {% for topic in topics %}
+        <div class="ui-hstack justify-between align-center" style="border-bottom:1px solid #eef2ff; padding:8px 0;">
+            <span class="ui-text">{{ topic.name }}</span>
+            <a href="{{ url_for('admin_delete_topic', topic_id=topic.id) }}" class="ui-button error s" onclick="return confirm('Удалить тему?')">Удалить</a>
+        </div>
+        {% else %}
+        <div class="ui-text gray">Тем пока нет</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
