@@ -3,14 +3,14 @@
 {% block hero_title %}Новости{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-24">
-    <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m" style="align-self:flex-start;">+ Добавить новость</a>
+    <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m">+ Добавить новость</a>
     <div class="ui-vstack gap-16">
         {% for item in news %}
-        <div class="ui-hstack gap-24" style="border:1px solid #eef2ff; border-radius:24px; padding:16px;">
+        <div class="news-admin-item">
             {% if item.image_url %}
-            <img src="{{ url_for('static', filename=item.image_url) }}" style="width:80px; height:80px; object-fit:cover; border-radius:12px;">
+            <img src="{{ url_for('static', filename=item.image_url) }}" class="news-admin-img">
             {% else %}
-            <div style="width:80px; height:80px; background:#eef2ff; border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <div class="news-admin-img-placeholder">
                 <img src="{{ url_for('static', filename='icons/newspaper.svg') }}" width="40" height="40" alt="Новость">
             </div>
             {% endif %}

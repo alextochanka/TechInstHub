@@ -2,44 +2,42 @@
 {% block title %}Добавить пользователя{% endblock %}
 {% block hero_title %}Добавление преподавателя/администратора{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32 align-center" style="max-width: 600px; margin: 0 auto;">
-    <form method="post" class="ui-vstack gap-20" style="width: 100%;" id="addUserForm">
-        <div class="ui-vstack gap-8">
+<div class="ui-vstack gap-32 align-center max-w-md mx-auto">
+    <form method="post" class="ui-vstack gap-20 w-full" id="addUserForm">
+        <div class="filter-group">
             <label class="ui-text semibold">Email</label>
             <input type="email" name="email" required class="ui-input">
         </div>
-        <div class="ui-vstack gap-8">
+        <div class="filter-group">
             <label class="ui-text semibold">Имя</label>
             <input type="text" name="name" required class="ui-input">
         </div>
-        <div class="ui-vstack gap-8">
+        <div class="filter-group">
             <label class="ui-text semibold">Фамилия</label>
             <input type="text" name="surname" required class="ui-input">
         </div>
-        <div class="ui-vstack gap-8">
+        <div class="filter-group">
             <label class="ui-text semibold">Роль</label>
             <select name="role" class="ui-input">
                 <option value="teacher">Преподаватель</option>
                 <option value="admin">Администратор</option>
             </select>
         </div>
-
-        <div class="ui-vstack gap-8">
+        <div class="filter-group">
             <label class="ui-text semibold">Пароль</label>
-            <div style="position: relative;">
-                <input type="password" name="password" id="passwordAdmin" required class="ui-input" style="padding-right:40px;">
+            <div class="relative">
+                <input type="password" name="password" id="passwordAdmin" required class="ui-input pr-10">
                 <button type="button" id="togglePasswordAdmin" class="password-toggle">
                     <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="24" height="24" id="eyeIconAdmin" alt="Показать пароль">
                 </button>
             </div>
-            <div id="passwordHints" class="ui-vstack gap-4" style="margin-top: 8px;">
-                <div id="hint-length" class="password-hint"><span id="length-icon">❌</span> 8–14 символов</div>
-                <div id="hint-upper" class="password-hint"><span id="upper-icon">❌</span> Заглавная буква (A–Z)</div>
-                <div id="hint-lower" class="password-hint"><span id="lower-icon">❌</span> Строчная буква (a–z)</div>
-                <div id="hint-special" class="password-hint"><span id="special-icon">❌</span> Специальный символ (!@#$%^&* и др.)</div>
+            <div id="passwordHints" class="ui-vstack gap-1 mt-2">
+                <div class="password-hint"><span id="length-icon">❌</span> 8–14 символов</div>
+                <div class="password-hint"><span id="upper-icon">❌</span> Заглавная буква (A–Z)</div>
+                <div class="password-hint"><span id="lower-icon">❌</span> Строчная буква (a–z)</div>
+                <div class="password-hint"><span id="special-icon">❌</span> Специальный символ (!@#$%^&* и др.)</div>
             </div>
         </div>
-
         <button type="submit" class="ui-button primary m">Создать</button>
     </form>
 </div>

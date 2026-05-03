@@ -2,10 +2,19 @@
 {% block title %}Добавить новость{% endblock %}
 {% block hero_title %}Новая новость{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="ui-vstack gap-24" style="max-width: 600px; margin: 0 auto;">
-    <div><label>Заголовок</label><input type="text" name="title" required class="ui-input" style="width:100%;"></div>
-    <div><label>Содержание</label><textarea name="content" rows="6" required class="ui-input" style="width:100%;"></textarea></div>
-    <div><label>Изображение</label><input type="file" name="image" accept="image/*" class="ui-input"></div>
+<form method="post" enctype="multipart/form-data" class="ui-vstack gap-24 max-w-md mx-auto">
+    <div class="filter-group">
+        <label class="ui-text semibold">Заголовок</label>
+        <input type="text" name="title" required class="ui-input w-full p-3 rounded-xl">
+    </div>
+    <div class="filter-group">
+        <label class="ui-text semibold">Содержание</label>
+        <textarea name="content" rows="6" required class="ui-input w-full p-3 rounded-xl"></textarea>
+    </div>
+    <div class="filter-group">
+        <label class="ui-text semibold">Изображение</label>
+        <input type="file" name="image" accept="image/*" class="ui-input">
+    </div>
     <button type="submit" class="ui-button primary m">Опубликовать</button>
 </form>
 {% endblock %}

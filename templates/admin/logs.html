@@ -4,7 +4,7 @@
 {% block content %}
 <div class="ui-vstack gap-16">
     {% for log in logs %}
-    <div class="ui-vstack gap-4" style="border-bottom:1px solid #eef2ff; padding:12px 0;">
+    <div class="log-item">
         <div class="ui-text semibold">{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }} – {{ log.action }}</div>
         <div class="ui-text gray">Пользователь: {{ log.user_id or 'система' }}</div>
         <div class="ui-text xs">{{ log.details or '' }}</div>
