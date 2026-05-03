@@ -2,96 +2,40 @@
 {% block title %}TechInstHub — платформа для поиска проектов{% endblock %}
 {% block hero_title %}TECHINSTHUB{% endblock %}
 {% block content %}
-<style>
-    /* Услуги — вертикальный столбец */
-    .services-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-    }
-    /* Карточка услуги на всю ширину */
-    .service-card {
-        width: 100%;
-        padding: 32px;
-        border-radius: 16px;
-        border: 2px solid #1E3A8A;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .service-card:hover {
-        background-color: #f0f4ff;
-    }
-    /* Рекомендации и новости — горизонтальная прокрутка на мобильных, сетка на десктопе */
-    @media (min-width: 768px) {
-        .recommendations-grid, .news-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 24px;
-            overflow-x: visible;
-        }
-    }
-    @media (max-width: 767px) {
-        .recommendations-grid, .news-grid {
-            display: flex;
-            overflow-x: auto;
-            gap: 24px;
-            padding-bottom: 16px;
-        }
-        .rec-card, .news-card {
-            flex: 0 0 280px;
-        }
-    }
-    .rec-description {
-        color: #cdd9ff;
-        font-size: 14px;
-        line-height: 1.45;
-        margin: 12px 0;
-        flex: 1;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-</style>
 <div class="ui-vstack gap-32">
-    <!-- Услуги (вертикально) -->
     <div class="services">
         <h2 class="section-title">УСЛУГИ</h2>
         <div class="services-grid">
-            <div class="service-card" onclick="location.href='{{ url_for('catalog') }}'">
+            <div class="service-card" data-href="{{ url_for('catalog') }}">
                 <div class="service-title">Проекты</div>
-                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" alt="icon" width="36" height="36"></div>
+                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
-            <div class="service-card" onclick="location.href='{{ url_for('news_list') }}'">
+            <div class="service-card" data-href="{{ url_for('news_list') }}">
                 <div class="service-title">Стажировки</div>
-                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" alt="icon" width="36" height="36"></div>
+                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
-            <div class="service-card" onclick="location.href='{{ url_for('news_list') }}'">
+            <div class="service-card" data-href="{{ url_for('news_list') }}">
                 <div class="service-title">Мероприятия</div>
-                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" alt="icon" width="36" height="36"></div>
+                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
-            <div class="service-card" onclick="location.href='{{ url_for('chats_list') }}'">
+            <div class="service-card" data-href="{{ url_for('chats_list') }}">
                 <div class="service-title">Сообщество</div>
-                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" alt="icon" width="36" height="36"></div>
+                <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
         </div>
     </div>
 
-    <!-- Рекомендации (проекты) -->
     <div class="recommendations">
         <div class="recommendations-header">
             <h2 class="recommendations-title">РЕКОМЕНДАЦИИ</h2>
         </div>
         <div class="recommendations-grid">
             {% for project in projects[:3] %}
-            <div class="rec-card">
+            <div class="rec-card" data-href="{{ url_for('project_detail', project_id=project.id) }}">
                 {% if project.image_url %}
-                <img src="{{ url_for('static', filename=project.image_url) }}" style="width:100%; height:160px; object-fit:cover; border-radius:16px;">
+                <img src="{{ url_for('static', filename=project.image_url) }}" class="rec-card-image">
                 {% else %}
-                <div style="width:100%; height:160px; background:#eef2ff; border-radius:16px; display:flex; align-items:center; justify-content:center;">
+                <div class="rec-card-image-placeholder">
                     <img src="{{ url_for('static', filename='icons/image.svg') }}" width="48" height="48" alt="Нет фото">
                 </div>
                 {% endif %}
@@ -100,7 +44,6 @@
                     <span class="rec-difficulty">{{ project.difficulty or 'легкий' }}</span>
                 </div>
                 <h3 class="rec-title">{{ project.title[:30] }}...</h3>
-                <a class="rec-btn" onclick="location.href='{{ url_for('project_detail', project_id=project.id) }}'">подробности</a>
                 <div class="rec-teacher">преподаватель: {{ project.name }} {{ project.surname }}</div>
             </div>
             {% else %}
@@ -108,22 +51,21 @@
             {% endfor %}
         </div>
         <div class="btn-view-all">
-            <a class="btn-secondary" onclick="location.href='{{ url_for('catalog') }}'">смотреть все</a>
+            <a class="btn-secondary" data-href="{{ url_for('catalog') }}">смотреть все</a>
         </div>
     </div>
 
-    <!-- Новости (в стиле рекомендаций) -->
-    <div class="recommendations" style="margin-top: 32px;">
+    <div class="recommendations mt-6">
         <div class="recommendations-header">
             <h2 class="recommendations-title">НОВОСТИ</h2>
         </div>
         <div class="recommendations-grid">
             {% for item in news %}
-            <div class="rec-card">
+            <div class="rec-card" data-href="{{ url_for('news_list') }}">
                 {% if item.image_url %}
-                <img src="{{ url_for('static', filename=item.image_url) }}" style="width:100%; height:160px; object-fit:cover; border-radius:16px;">
+                <img src="{{ url_for('static', filename=item.image_url) }}" class="rec-card-image">
                 {% else %}
-                <div style="width:100%; height:160px; background:#eef2ff; border-radius:16px; display:flex; align-items:center; justify-content:center;">
+                <div class="rec-card-image-placeholder">
                     <img src="{{ url_for('static', filename='icons/news.svg') }}" width="48" height="48" alt="Новость">
                 </div>
                 {% endif %}
@@ -133,14 +75,13 @@
                 </div>
                 <h3 class="rec-title">{{ item.title[:40] }}{% if item.title|length > 40 %}...{% endif %}</h3>
                 <div class="rec-description">{{ item.content[:80] }}{% if item.content|length > 80 %}...{% endif %}</div>
-                <a class="rec-btn" onclick="location.href='{{ url_for('news_list') }}'">подробнее</a>
             </div>
             {% else %}
             <div class="ui-text gray center">Нет новостей</div>
             {% endfor %}
         </div>
         <div class="btn-view-all">
-            <a class="btn-secondary" onclick="location.href='{{ url_for('news_list') }}'">смотреть все</a>
+            <a class="btn-secondary" data-href="{{ url_for('news_list') }}">смотреть все</a>
         </div>
     </div>
 </div>

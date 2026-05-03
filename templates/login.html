@@ -2,18 +2,18 @@
 {% block title %}Вход — TechInstHub{% endblock %}
 {% block hero_title %}Вход в аккаунт{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32 align-center" style="max-width: 480px; margin: 0 auto;">
-    <form method="post" class="ui-vstack gap-20" style="width: 100%;">
+<div class="ui-vstack gap-32 align-center max-w-md mx-auto">
+    <form method="post" class="ui-vstack gap-20 w-full">
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Email</label>
-            <input type="email" name="email" required class="ui-input" style="padding: 12px; border-radius: 20px; border: 1px solid #e2e8f0;">
+            <input type="email" name="email" required class="ui-input p-3 rounded-xl border-gray">
         </div>
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Пароль</label>
-            <div style="position: relative;">
-                <input type="password" name="password" id="password" required class="ui-input" style="width:100%; padding: 12px; border-radius: 20px; border: 1px solid #e2e8f0; padding-right: 40px;">
-                <button type="button" id="togglePassword" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding:0;">
-                    <img src="{{ url_for('static', filename='icons/eye-off.svg') }}" alt="Показать пароль" width="24" height="24" id="eyeIcon">
+            <div class="relative">
+                <input type="password" name="password" id="password" required class="ui-input p-3 rounded-xl border-gray w-full pr-10">
+                <button type="button" id="togglePassword" class="password-toggle">
+                    <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="24" height="24" id="eyeIcon" alt="Показать пароль">
                 </button>
             </div>
         </div>
@@ -21,21 +21,4 @@
     </form>
     <div class="ui-text center">Нет аккаунта? <a href="{{ url_for('register') }}" class="ui-link primary">Зарегистрироваться</a></div>
 </div>
-<script>
-    const toggleBtn = document.getElementById('togglePassword');
-    const passwordField = document.getElementById('password');
-    const eyeIcon = document.getElementById('eyeIcon');
-
-    toggleBtn.addEventListener('click', function() {
-        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordField.setAttribute('type', type);
-        if (type === 'password') {
-            eyeIcon.src = "{{ url_for('static', filename='icons/Eye-off.svg') }}";
-            eyeIcon.alt = "Показать пароль";
-        } else {
-            eyeIcon.src = "{{ url_for('static', filename='icons/Eye-on.svg') }}";
-            eyeIcon.alt = "Скрыть пароль";
-        }
-    });
-</script>
 {% endblock %}

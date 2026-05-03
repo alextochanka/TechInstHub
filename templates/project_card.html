@@ -2,19 +2,46 @@
 {% block title %}{{ project.title }}{% endblock %}
 {% block hero_title %}{{ project.title }}{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32" style="max-width: 800px; margin: 0 auto;">
+<div class="project-detail-container">
     {% if project.image_url %}
-    <img src="{{ url_for('static', filename=project.image_url) }}" style="width:100%; max-height:400px; object-fit:cover; border-radius:24px;">
+    <img src="{{ url_for('static', filename=project.image_url) }}" class="project-detail-image">
     {% endif %}
-    <div><div class="ui-heading s primary">Описание</div><p class="ui-text gray">{{ project.description }}</p></div>
-    <div><div class="ui-heading s primary">Требования</div><p class="ui-text gray">{{ project.requirements or '—' }}</p></div>
-    <div><div class="ui-heading s primary">Задачи</div><p class="ui-text gray">{{ project.details or '—' }}</p></div>
-    <div><div class="ui-heading s primary">Тема</div><p class="ui-text gray">{{ project.topic_name or '—' }}</p></div>
-    <div><div class="ui-heading s primary">Сложность</div><p class="ui-text gray">{{ project.difficulty or '—' }}</p></div>
-    <div><div class="ui-heading s primary">Срок</div><p class="ui-text gray">{{ project.deadline or '—' }}</p></div>
-    <div><div class="ui-heading s primary">Преподаватель</div><p class="ui-text semibold">{{ project.tutor_name }} {{ project.tutor_surname }}</p></div>
-    <div><div class="ui-heading s primary">Максимум студентов</div><p class="ui-text gray">{{ project.max_students or 1 }}</p></div>
-    <div><div class="ui-heading s primary">Дата создания</div><p class="ui-text gray">{{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</p></div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Описание</div>
+        <p class="project-detail-text">{{ project.description }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Требования</div>
+        <p class="project-detail-text">{{ project.requirements or '—' }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Задачи</div>
+        <p class="project-detail-text">{{ project.details or '—' }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Тема</div>
+        <p class="project-detail-text">{{ project.topic_name or '—' }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Сложность</div>
+        <p class="project-detail-text">{{ project.difficulty or '—' }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Срок</div>
+        <p class="project-detail-text">{{ project.deadline or '—' }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Преподаватель</div>
+        <p class="project-detail-text semibold">{{ project.tutor_name }} {{ project.tutor_surname }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Максимум студентов</div>
+        <p class="project-detail-text">{{ project.max_students or 1 }}</p>
+    </div>
+    <div class="project-detail-section">
+        <div class="project-detail-label">Дата создания</div>
+        <p class="project-detail-text">{{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</p>
+    </div>
     {% if session.role == 'student' %}
         {% if project.status == 'открыт' %}
             {% if has_accepted_application %}
@@ -27,8 +54,8 @@
                 </form>
             {% endif %}
         {% else %}
-            <div class="ui-text error">
-                <img src="{{ url_for('static', filename='icons/warning.svg') }}" width="20" height="20" style="vertical-align: middle;"> ⚠️ Проект уже завершён
+            <div class="project-detail-warning">
+                <img src="{{ url_for('static', filename='icons/warning.svg') }}" width="20" height="20"> ⚠️ Проект уже завершён
             </div>
         {% endif %}
     {% endif %}

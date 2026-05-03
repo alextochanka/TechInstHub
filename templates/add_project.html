@@ -2,27 +2,52 @@
 {% block title %}Новый проект{% endblock %}
 {% block hero_title %}Новый проект{% endblock %}
 {% block content %}
-<form method="post" class="ui-vstack gap-24" style="max-width:700px; margin:0 auto;" enctype="multipart/form-data">
-    <div><label class="ui-text semibold">Название</label><input type="text" name="title" required class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></div>
-    <div><label class="ui-text semibold">Описание</label><textarea name="description" rows="4" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></textarea></div>
-    <div><label class="ui-text semibold">Требования</label><textarea name="requirements" rows="3" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></textarea></div>
-    <div><label class="ui-text semibold">Задачи</label><textarea name="details" rows="3" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></textarea></div>
-    <div><label class="ui-text semibold">Тема</label>
-        <select name="topic_id" class="ui-input" style="width:100%; padding:12px; border-radius:20px;">
+<form method="post" class="ui-vstack gap-24 max-w-lg mx-auto" enctype="multipart/form-data">
+    <div class="form-group">
+        <label class="ui-text semibold">Название</label>
+        <input type="text" name="title" required class="ui-input w-full p-3 rounded-xl">
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Описание</label>
+        <textarea name="description" rows="4" class="ui-input w-full p-3 rounded-xl"></textarea>
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Требования</label>
+        <textarea name="requirements" rows="3" class="ui-input w-full p-3 rounded-xl"></textarea>
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Задачи</label>
+        <textarea name="details" rows="3" class="ui-input w-full p-3 rounded-xl"></textarea>
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Тема</label>
+        <select name="topic_id" class="ui-input w-full p-3 rounded-xl">
             <option value="">-- Выберите тему --</option>
             {% for topic in topics %}
             <option value="{{ topic.id }}">{{ topic.name }}</option>
             {% endfor %}
         </select>
     </div>
-    <div><label class="ui-text semibold">Сложность</label>
-        <select name="difficulty" class="ui-input" style="width:100%; padding:12px; border-radius:20px;">
-            <option>легкий</option><option>средний</option><option>сложный</option>
+    <div class="form-group">
+        <label class="ui-text semibold">Сложность</label>
+        <select name="difficulty" class="ui-input w-full p-3 rounded-xl">
+            <option>легкий</option>
+            <option>средний</option>
+            <option>сложный</option>
         </select>
     </div>
-    <div><label class="ui-text semibold">Срок (YYYY-MM-DD)</label><input type="date" name="deadline" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></div>
-    <div><label class="ui-text semibold">Максимум студентов</label><input type="number" name="max_students" min="1" max="20" value="1" class="ui-input" style="width:100%; padding:12px; border-radius:20px;"></div>
-    <div><label class="ui-text semibold">Изображение</label><input type="file" name="image" accept="image/*" class="ui-input"></div>
+    <div class="form-group">
+        <label class="ui-text semibold">Срок (YYYY-MM-DD)</label>
+        <input type="date" name="deadline" class="ui-input w-full p-3 rounded-xl">
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Максимум студентов</label>
+        <input type="number" name="max_students" min="1" max="20" value="1" class="ui-input w-full p-3 rounded-xl">
+    </div>
+    <div class="form-group">
+        <label class="ui-text semibold">Изображение</label>
+        <input type="file" name="image" accept="image/*" class="ui-input">
+    </div>
     <button type="submit" class="ui-button primary m">Создать</button>
 </form>
 {% endblock %}

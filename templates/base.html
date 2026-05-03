@@ -10,14 +10,12 @@
 </head>
 <body>
     <div class="nav-links">
-        <!-- Стрелки навигации (слева от логотипа) -->
         <a href="javascript:history.back()" class="nav-arrow" title="Назад">
             <img src="{{ url_for('static', filename='icons/arrow-left.svg') }}" width="28" height="28" alt="Назад">
         </a>
         <a href="javascript:history.forward()" class="nav-arrow" title="Вперёд">
             <img src="{{ url_for('static', filename='icons/arrow-right.svg') }}" width="28" height="28" alt="Вперёд">
         </a>
-        <!-- Логотип (иконка чатов) теперь справа от стрелок -->
         <a href="{{ url_for('chats_list') }}" class="logo-link">
             <img src="{{ url_for('static', filename='icons/logo.svg') }}" width="28" height="28" alt="Чаты">
         </a>
@@ -47,7 +45,7 @@
         <div class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
-                    <div class="ui-text s {{ 'error' if category == 'error' else 'success' if category == 'success' else 'primary' }}" style="margin-bottom: 24px;">
+                    <div class="ui-text s {{ 'error' if category == 'error' else 'success' if category == 'success' else 'primary' }} mb-6">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -55,21 +53,21 @@
             {% block content %}{% endblock %}
         </div>
         <footer class="footer">
-            <div class="ui-hstack justify-between align-center" style="padding: 32px 42px; color: #fff; flex-wrap: wrap; gap: 16px;">
-                <div class="ui-hstack gap-16">
+            <div class="footer-inner">
+                <div class="footer-col"></div>
+                <div class="footer-copyright">© 2026 TechInstHub</div>
+                <div class="footer-links">
+                    <a href="{{ url_for('index') }}">Главная</a>
+                    <a href="{{ url_for('catalog') }}">Проекты</a>
+                    <a href="{{ url_for('news_list') }}">Новости</a>
                 </div>
-                <div class="ui-text m">© 2026 TechInstHub</div>
-                <div class="ui-hstack gap-24">
-                    <a href="{{ url_for('index') }}" style="color:#fff;">Главная</a>
-                    <a href="{{ url_for('catalog') }}" style="color:#fff;">Проекты</a>
-                    <a href="{{ url_for('news_list') }}" style="color:#fff;">Новости</a>
+                <div class="footer-social">
+                    <a href="#"><img src="{{ url_for('static', filename='icons/max.svg') }}" width="24" height="24" alt="MAX"></a>
+                    <a href="#"><img src="{{ url_for('static', filename='icons/vk.svg') }}" width="24" height="24" alt="Вконтакте"></a>
                 </div>
-                <div class="ui-hstack gap-16">
-                    <a href="#" style="color:#fff;"><img src="{{ url_for('static', filename='icons/max.svg') }}" width="24" height="24" alt="MAX"></a>
-                    <a href="#" style="color:#fff;"><img src="{{ url_for('static', filename='icons/vk.svg') }}" width="24" height="24" alt="Вконтакте"></a>
-                </div>
-                <div class="ui-text">
-                    <img src="{{ url_for('static', filename='icons/email.svg') }}" width="20" height="20" alt="Email" style="vertical-align: middle;"> support@techinsthub.com
+                <div class="footer-email">
+                    <img src="{{ url_for('static', filename='icons/email.svg') }}" width="20" height="20" alt="Email">
+                    support@techinsthub.com
                 </div>
             </div>
         </footer>

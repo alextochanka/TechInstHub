@@ -1,25 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Чат — {{ chat_name }}{% endblock %}
-{% block hero_title %}
-<div class="ui-hstack align-center gap-16">
-    {{ chat_name }}
-</div>
-{% endblock %}
+{% block hero_title %}{{ chat_name }}{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-24" style="height: 70vh;">
-    <div id="messages" class="ui-vstack gap-16" style="flex:1; overflow-y:auto; padding:16px;">
+<div class="chat-container">
+    <div id="messages" class="chat-messages">
         {% for msg in messages %}
-        <div class="ui-vstack gap-4" style="align-self: {% if msg.sender_id == session.user_id %}flex-end{% else %}flex-start{% endif %}; background: #f1f5f9; border-radius: 20px; padding: 12px 16px; max-width: 70%;">
-            <div class="ui-text semibold">{{ msg.name }} {{ msg.surname }}</div>
+        <div class="chat-message {% if msg.sender_id == session.user_id %}chat-message-mine{% else %}chat-message-other{% endif %}">
+            <div class="chat-message-sender">{{ msg.name }} {{ msg.surname }}</div>
             <div class="ui-text">{{ msg.content }}</div>
-            <div class="ui-text xs gray">{{ msg.sent_at.strftime('%H:%M %d.%m') }}</div>
+            <div class="chat-message-time">{{ msg.sent_at.strftime('%H:%M %d.%m') }}</div>
         </div>
         {% endfor %}
     </div>
-    <form method="post" action="{{ url_for('send_message', chat_id=chat_id) }}" class="ui-hstack gap-16">
-        <textarea name="content" rows="2" required class="ui-input" style="flex:1; padding:12px; border-radius:20px; font-family: 'Inter', sans-serif;" placeholder="Введите сообщение..."></textarea>
-        <!-- Кнопка прикрепления файла (без функционала) -->
-        <button type="button" class="ui-button outline s" onclick="alert('Функция загрузки файлов в разработке')">
+    <form method="post" action="{{ url_for('send_message', chat_id=chat_id) }}" class="chat-form">
+        <textarea name="content" rows="2" required class="ui-input chat-input" placeholder="Введите сообщение..."></textarea>
+        <button type="button" class="ui-button outline s" data-attach-alert>
             <img src="{{ url_for('static', filename='icons/attach.svg') }}" width="24" height="24" alt="Прикрепить">
         </button>
         <button type="submit" class="ui-button primary m">
@@ -27,10 +22,4 @@
         </button>
     </form>
 </div>
-<script>
-    const messagesDiv = document.getElementById('messages');
-    if (messagesDiv) {
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-</script>
 {% endblock %}
