@@ -1385,4 +1385,4 @@ if __name__ == '__main__':
     ensure_message_attachments()
     ensure_project_images_multiple()
     create_admin_if_not_exists()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
