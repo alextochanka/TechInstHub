@@ -2,9 +2,9 @@
 {% block title %}Управление темами{% endblock %}
 {% block hero_title %}Темы проектов{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32 max-w-md mx-auto">
+<div class="ui-vstack gap-32 max-w-lg mx-auto">
     <form method="post" action="{{ url_for('admin_add_topic') }}" class="ui-hstack gap-16">
-        <input type="text" name="name" placeholder="Название темы" required class="ui-input flex-1 p-3 rounded-xl">
+        <input type="text" name="name" placeholder="Название темы" required class="ui-input flex-1">
         <button type="submit" class="ui-button primary m">Добавить</button>
     </form>
     <div class="ui-vstack gap-16">
@@ -12,10 +12,10 @@
         {% for topic in topics %}
         <div class="topic-item">
             <span class="ui-text">{{ topic.name }}</span>
-            <a href="{{ url_for('admin_delete_topic', topic_id=topic.id) }}" class="ui-button error s" data-confirm="Удалить тему?">Удалить</a>
+            <a href="{{ url_for('admin_delete_topic', topic_id=topic.id) }}" class="ui-button error s" data-confirm="Удалить тему? Все проекты с этой темой останутся без темы.">Удалить</a>
         </div>
         {% else %}
-        <div class="ui-text gray">Тем пока нет</div>
+        <div class="ui-text gray text-center">Тем пока нет</div>
         {% endfor %}
     </div>
 </div>

@@ -7,10 +7,19 @@
     <div class="ui-vstack gap-16">
         {% for user in users %}
         <div class="user-card">
-            <div>
-                <div class="ui-heading s">{{ user.name }} {{ user.surname }}</div>
-                <div class="ui-text gray">{{ user.email }}</div>
-                <div class="ui-text xs">Роль: {{ user.role }} | Рейтинг: {{ user.rating or 0 }}</div>
+            <div class="user-info">
+                {% if user.avatar_url %}
+                <img src="{{ url_for('static', filename=user.avatar_url) }}" class="avatar" alt="Аватар">
+                {% else %}
+                <div class="avatar bg-blue-50 flex items-center justify-center">
+                    <img src="{{ url_for('static', filename='icons/user.svg') }}" width="24" height="24" alt="Нет аватара">
+                </div>
+                {% endif %}
+                <div>
+                    <div class="ui-heading s">{{ user.name }} {{ user.surname }}</div>
+                    <div class="ui-text gray">{{ user.email }}</div>
+                    <div class="ui-text xs">Роль: {{ user.role }} | Рейтинг: {{ user.rating|round(1) or 0 }}</div>
+                </div>
             </div>
             <div>
                 <a href="{{ url_for('admin_delete_user', user_id=user.id) }}" class="ui-button error s" data-confirm="Удалить пользователя?">Удалить</a>

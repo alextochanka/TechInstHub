@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Все проекты — Админ-панель{% endblock %}
+{% block hero_title %}Управление проектами{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-32 max-w-lg mx-auto">
+    <div class="ui-hstack gap-16 justify-between">
+        <div class="stats-mini">
+            <span class="stat-number-mini">{{ projects|length }}</span>
+            <span class="ui-text gray">всего проектов</span>
+        </div>
+    </div>
+    <div class="ui-vstack gap-16">
+        <h3 class="ui-heading s">Существующие проекты</h3>
+        {% for project in projects %}
+        <div class="topic-item">
+            <div>
+                <div class="ui-text semibold">{{ project.title }}</div>
+                <div class="ui-text xs gray mt-1">
+                    Преподаватель: {{ project.tutor_name }} {{ project.tutor_surname }}
+                </div>
+                <div class="ui-text xs gray">
+                    Статус: <span class="project-status-{{ project.status }}">{{ project.status }}</span>
+                    | Заявок: {{ project.apps_count }} | Мест: {{ project.max_students }}
+                </div>
+                <div class="ui-text xs gray">📅 {{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</div>
+            </div>
+            <div class="ui-hstack gap-8">
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-button outline xs" target="_blank">Просмотр</a>
+                <a href="{{ url_for('admin_delete_project', project_id=project.id) }}" 
+                   class="ui-button error s" 
+                   data-confirm="Удалить проект «{{ project.title }}»? Все данные будут удалены безвозвратно.">
+                    Удалить
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="ui-text gray text-center">Проектов пока нет</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

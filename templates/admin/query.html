@@ -3,7 +3,7 @@
 {% block hero_title %}Выполнить запрос{% endblock %}
 {% block content %}
 <form method="post" class="ui-vstack gap-16">
-    <textarea name="query" rows="6" class="ui-input w-full p-3 rounded-xl" placeholder="SELECT * FROM users LIMIT 10"></textarea>
+    <textarea name="query" rows="6" class="ui-input w-full" placeholder="SELECT * FROM users LIMIT 10"></textarea>
     <button type="submit" class="ui-button primary m">Выполнить</button>
 </form>
 {% if error %}
@@ -23,8 +23,16 @@
         <tbody>
             {% for row in result %}
             <tr>
-                {% for val in row.values() %}
-                <td>{{ val }}</td>
+                {% for key, val in row.items() %}
+                <td>
+                    {% if key == 'avatar_url' and val %}
+                        <img src="{{ url_for('static', filename=val) }}" style="max-width:50px; border-radius:50%;">
+                    {% elif key == 'image_url' and val %}
+                        <img src="{{ url_for('static', filename=val) }}" style="max-width:50px;">
+                    {% else %}
+                        {{ val }}
+                    {% endif %}
+                </td>
                 {% endfor %}
             </tr>
             {% endfor %}

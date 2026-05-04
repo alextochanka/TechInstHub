@@ -5,15 +5,17 @@
 <form method="post" enctype="multipart/form-data" class="ui-vstack gap-24 max-w-md mx-auto">
     <div class="filter-group">
         <label class="ui-text semibold">Заголовок</label>
-        <input type="text" name="title" required class="ui-input w-full p-3 rounded-xl">
+        <input type="text" name="title" required class="ui-input w-full">
     </div>
     <div class="filter-group">
         <label class="ui-text semibold">Содержание</label>
-        <textarea name="content" rows="6" required class="ui-input w-full p-3 rounded-xl"></textarea>
+        <textarea name="content" rows="6" required class="ui-input w-full"></textarea>
     </div>
     <div class="filter-group">
-        <label class="ui-text semibold">Изображение</label>
-        <input type="file" name="image" accept="image/*" class="ui-input">
+        <label class="ui-text semibold">Изображения</label>
+        <input type="file" name="images" id="newsImages" accept="image/*" multiple class="ui-input w-full">
+        <div id="newsImagesPreview" class="image-upload-grid mt-2"></div>
+        <small class="ui-text xs gray">Можно выбрать несколько изображений</small>
     </div>
     <button type="submit" class="ui-button primary m">Опубликовать</button>
 </form>

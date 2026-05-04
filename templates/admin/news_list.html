@@ -2,24 +2,23 @@
 {% block title %}Управление новостями{% endblock %}
 {% block hero_title %}Новости{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-24">
-    <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m">+ Добавить новость</a>
+<div class="ui-vstack gap-32 max-w-lg mx-auto">
+    <div class="ui-hstack gap-16">
+        <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m">+ Добавить новость</a>
+    </div>
     <div class="ui-vstack gap-16">
+        <h3 class="ui-heading s">Существующие новости</h3>
         {% for item in news %}
-        <div class="news-admin-item">
-            {% if item.image_url %}
-            <img src="{{ url_for('static', filename=item.image_url) }}" class="news-admin-img">
-            {% else %}
-            <div class="news-admin-img-placeholder">
-                <img src="{{ url_for('static', filename='icons/newspaper.svg') }}" width="40" height="40" alt="Новость">
-            </div>
-            {% endif %}
+        <div class="topic-item">
             <div>
-                <div class="ui-heading s">{{ item.title }}</div>
-                <div class="ui-text gray">{{ item.content[:100] }}...</div>
-                <div class="ui-text xs gray">{{ item.published_at.strftime('%d.%m.%Y') }}</div>
+                <div class="ui-text semibold">{{ item.title }}</div>
+                <div class="ui-text xs gray mt-1">{{ item.content[:80] }}{% if item.content|length > 80 %}...{% endif %}</div>
+                <div class="ui-text xs gray">📅 {{ item.published_at.strftime('%d.%m.%Y') if item.published_at else '' }}</div>
             </div>
+            <a href="{{ url_for('admin_delete_news', news_id=item.id) }}" class="ui-button error s" data-confirm="Удалить новость «{{ item.title }}»?">Удалить</a>
         </div>
+        {% else %}
+        <div class="ui-text gray text-center">Новостей пока нет</div>
         {% endfor %}
     </div>
 </div>
