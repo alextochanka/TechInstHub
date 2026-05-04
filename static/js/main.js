@@ -85,6 +85,7 @@ function initCatalogSearch() {
     searchForm.addEventListener('submit', function() {
         const urlParams = new URLSearchParams(window.location.search);
         const topic = urlParams.get('topic');
+        const complexity = urlParams.get('complexity');
         if (topic) {
             let hiddenTopic = searchForm.querySelector('input[name="topic"]');
             if (!hiddenTopic) {
@@ -94,6 +95,16 @@ function initCatalogSearch() {
                 searchForm.appendChild(hiddenTopic);
             }
             hiddenTopic.value = topic;
+        }
+        if (complexity) {
+            let hiddenComplexity = searchForm.querySelector('input[name="complexity"]');
+            if (!hiddenComplexity) {
+                hiddenComplexity = document.createElement('input');
+                hiddenComplexity.type = 'hidden';
+                hiddenComplexity.name = 'complexity';
+                searchForm.appendChild(hiddenComplexity);
+            }
+            hiddenComplexity.value = complexity;
         }
     });
 }
@@ -150,7 +161,6 @@ function initCatalogFilters() {
             const url = new URL(window.location.href);
             if (complexity) url.searchParams.set('complexity', complexity);
             else url.searchParams.delete('complexity');
-            // сохраняем поисковый запрос и тему
             const search = new URLSearchParams(window.location.search).get('search');
             if (search) url.searchParams.set('search', search);
             const topic = new URLSearchParams(window.location.search).get('topic');
@@ -158,6 +168,165 @@ function initCatalogFilters() {
             window.location.href = url.toString();
         });
     }
+}
+
+// Превью изображений при загрузке (несколько файлов)
+function initImagePreviews(inputId, containerId) {
+    const input = document.getElementById(inputId);
+    const container = document.getElementById(containerId);
+    if (!input || !container) return;
+    
+    input.addEventListener('change', function(e) {
+        container.innerHTML = '';
+        const files = Array.from(e.target.files);
+        
+        files.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'image-preview';
+                    previewDiv.innerHTML = `
+                        <img src="${ev.target.result}" alt="Превью">
+                        <button type="button" class="remove-image" data-index="${index}">×</button>
+                    `;
+                    container.appendChild(previewDiv);
+                    
+                    previewDiv.querySelector('.remove-image').addEventListener('click', () => {
+                        previewDiv.remove();
+                        const dt = new DataTransfer();
+                        const remainingFiles = files.filter((_, i) => i !== index);
+                        remainingFiles.forEach(f => dt.items.add(f));
+                        input.files = dt.files;
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+}
+
+// Превью аватара
+function initAvatarPreview() {
+    const avatarInput = document.getElementById('avatarInput');
+    const avatarPreview = document.getElementById('avatarPreview');
+    if (!avatarInput || !avatarPreview) return;
+    
+    avatarInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                avatarPreview.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Загрузка вложений в чат (несколько файлов)
+function initChatAttachments() {
+    const attachBtn = document.querySelector('[data-attach-alert]');
+    const attachmentsInput = document.getElementById('attachmentsInput');
+    
+    if (!attachBtn || !attachmentsInput) return;
+    
+    attachBtn.addEventListener('click', () => {
+        attachmentsInput.click();
+    });
+    
+    attachmentsInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        const container = document.getElementById('attachmentsPreview');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        files.forEach((file) => {
+            const badge = document.createElement('span');
+            badge.className = 'chat-attachment';
+            badge.innerHTML = `📎 ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+            container.appendChild(badge);
+        });
+    });
+}
+
+// Удаление изображений проекта
+function initDeleteProjectImage() {
+    document.querySelectorAll('.delete-project-image').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const imageUrl = this.dataset.imageUrl;
+            const projectId = this.dataset.projectId;
+            
+            if (!confirm('Удалить это изображение?')) return;
+            
+            try {
+                const response = await fetch('/delete_project_image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_url: imageUrl, project_id: projectId })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.closest('.image-preview').remove();
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+            }
+        });
+    });
+}
+
+// Инициализация рейтинга звездочками (при выборе оценки)
+function initRatingStars() {
+    const stars = document.querySelectorAll('.stars .star');
+    const ratingInput = document.getElementById('ratingValue');
+    
+    if (!stars.length || !ratingInput) return;
+    
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const value = parseInt(this.dataset.value);
+            ratingInput.value = value;
+            
+            stars.forEach((s, index) => {
+                if (index < value) {
+                    s.innerHTML = '★';
+                    s.classList.add('filled');
+                } else {
+                    s.innerHTML = '☆';
+                    s.classList.remove('filled');
+                }
+            });
+        });
+        
+        star.addEventListener('mouseenter', function() {
+            const value = parseInt(this.dataset.value);
+            stars.forEach((s, index) => {
+                if (index < value) {
+                    s.innerHTML = '★';
+                    s.style.color = '#FCD34D';
+                } else {
+                    s.innerHTML = '☆';
+                    s.style.color = '#ccc';
+                }
+            });
+        });
+    });
+    
+    stars.forEach(star => {
+        star.addEventListener('mouseleave', function() {
+            const currentValue = parseInt(ratingInput.value);
+            stars.forEach((s, index) => {
+                if (index < currentValue) {
+                    s.innerHTML = '★';
+                    s.style.color = '#F59E0B';
+                } else {
+                    s.innerHTML = '☆';
+                    s.style.color = '#ccc';
+                }
+            });
+        });
+    });
 }
 
 // Обработка чекбокса "написать преподавателю" (project_page.html)
@@ -181,7 +350,6 @@ function initProjectPageStorage() {
     const saveMessage = document.getElementById('saveMessage');
     if (!projectName || !shortDescription || !theme) return;
 
-    // загрузка из localStorage
     if (localStorage.getItem('projectName')) projectName.value = localStorage.getItem('projectName');
     if (localStorage.getItem('shortDescription')) shortDescription.value = localStorage.getItem('shortDescription');
     if (localStorage.getItem('theme')) theme.value = localStorage.getItem('theme');
@@ -193,6 +361,34 @@ function initProjectPageStorage() {
         if (saveMessage) {
             saveMessage.textContent = '✓ Сохранено';
             setTimeout(() => saveMessage.textContent = '', 3000);
+        }
+    });
+}
+
+// Инициализация галереи изображений проекта
+function initProjectGallery() {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const closeBtn = document.querySelector('.modal-close');
+    
+    if (!modal || !modalImg) return;
+    
+    document.querySelectorAll('.project-detail-image-thumb').forEach(img => {
+        img.addEventListener('click', () => {
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+        });
+    });
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
+    
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
         }
     });
 }
@@ -224,8 +420,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initCatalogFilters();
     initTeacherMessageToggle();
     initProjectPageStorage();
+    initAvatarPreview();
+    initChatAttachments();
+    initProjectGallery();
+    initRatingStars(); // Инициализация звездочек рейтинга
+    
+    // Превью изображений для проектов и новостей
+    initImagePreviews('projectImages', 'imagesPreview');
+    initImagePreviews('newsImages', 'newsImagesPreview');
+    
+    // Удаление изображений проекта
+    initDeleteProjectImage();
 
-    // Специфичная для чата переотправка формы при enter (необязательно)
+    // Специфичная для чата переотправка формы при enter
     const chatTextarea = document.querySelector('.chat-form textarea');
     if (chatTextarea) {
         chatTextarea.addEventListener('keypress', (e) => {
