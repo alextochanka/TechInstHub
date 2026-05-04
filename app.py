@@ -5,7 +5,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -24,28 +24,19 @@ DB_CONFIG = {
 }
 
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+AVATAR_FOLDER = 'static/avatars'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['AVATAR_FOLDER'] = AVATAR_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(AVATAR_FOLDER, exist_ok=True)
 
-def is_safe_select_query(query: str) -> bool:
-    """Проверяет, что запрос является только SELECT (без модификации данных)."""
-    query_upper = query.strip().upper()
-    # Запрещённые ключевые слова
-    dangerous = {'DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER', 'TRUNCATE', 'CREATE', 'REPLACE', 'MERGE'}
-    if not query_upper.startswith('SeLECT'):
-        return False
-        # Простейшая проверка на опасные слова внутри запроса
-    for word in dangerous:
-        # Ищем как отдельное слово (с пробелами/знаками препинания)
-        if word in query_upper.split():
-            return False
-    return True
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ----- Глобальная защита (доступ только к login, register и статике) -----
+
+# ----- Глобальная защита -----
 @app.before_request
 def require_login():
     public_routes = ['login', 'register', 'static']
@@ -55,27 +46,22 @@ def require_login():
         flash('Пожалуйста, войдите в систему.', 'error')
         return redirect(url_for('login'))
 
+
 # ----- Вспомогательные функции -----
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
 
 def log_action(user_id, action, details=None, ip_address=None):
-    """Безопасное логирование с проверкой существования пользователя"""
     conn = None
     cur = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-
-        # Проверяем существует ли пользователь
         if user_id:
             cur.execute("SELECT 1 FROM users WHERE id = %s", (user_id,))
             if not cur.fetchone():
-                # Пользователь не найден, используем NULL вместо user_id
                 user_id = None
-                print(f"⚠️ Предупреждение: Пользователь с ID {user_id} не найден, лог сохранен без user_id")
-
         cur.execute("""
             INSERT INTO logs (user_id, action, details, ip_address, created_at)
             VALUES (%s, %s, %s, %s, NOW())
@@ -91,6 +77,22 @@ def log_action(user_id, action, details=None, ip_address=None):
         if conn:
             conn.close()
 
+
+def fix_project_dates():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("UPDATE projects SET deadline = CURRENT_DATE WHERE deadline IS NULL")
+        cur.execute("UPDATE projects SET deadline = CURRENT_DATE WHERE deadline < '1900-01-01'")
+        conn.commit()
+        print("✅ Исправлены проблемные даты в проектах")
+    except Exception as e:
+        print(f"⚠️ Ошибка при исправлении дат: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -98,7 +100,9 @@ def admin_required(f):
             flash('Доступ запрещён.', 'error')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
+
     return decorated
+
 
 def teacher_required(f):
     @wraps(f)
@@ -107,9 +111,10 @@ def teacher_required(f):
             flash('Только для преподавателей.', 'error')
             return redirect(url_for('index'))
         return f(*args, **kwargs)
+
     return decorated
 
-# ----- Проверка и создание колонки max_students в projects (если её нет) -----
+
 def ensure_max_students_column():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -124,21 +129,102 @@ def ensure_max_students_column():
             conn.commit()
             print("✅ Добавлена колонка max_students в таблицу projects")
     except Exception as e:
-        print("⚠️ Не удалось добавить колонку max_students:", e)
+        print(f"⚠️ Не удалось добавить колонку max_students: {e}")
     finally:
         cur.close()
         conn.close()
 
-# ----- Функция создания/добавления в групповой чат проекта -----
-def ensure_project_chat(project_id, tutor_id, student_id=None):
-    """Создаёт групповой чат для проекта, если его нет, и добавляет участников."""
+
+def ensure_avatar_column():
     conn = get_db_connection()
     cur = conn.cursor()
-    # Получаем название проекта
+    try:
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='users' AND column_name='avatar_url'
+        """)
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)")
+            conn.commit()
+            print("✅ Добавлена колонка avatar_url в таблицу users")
+    except Exception as e:
+        print(f"⚠️ Не удалось добавить колонку avatar_url: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
+def ensure_message_attachments():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name='message_attachments'
+            )
+        """)
+        table_exists = cur.fetchone()['exists']
+
+        if not table_exists:
+            cur.execute("""
+                CREATE TABLE message_attachments (
+                    id UUID PRIMARY KEY,
+                    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+                    file_url VARCHAR(500) NOT NULL,
+                    file_name VARCHAR(255),
+                    file_size INTEGER,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """)
+            print("✅ Создана таблица message_attachments")
+        conn.commit()
+    except Exception as e:
+        print(f"⚠️ Ошибка при обновлении message_attachments: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def ensure_project_images_multiple():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='images' AND column_name='file_name'
+        """)
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE images ADD COLUMN file_name VARCHAR(255)")
+            print("✅ Добавлена колонка file_name в images")
+
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='images' AND column_name='file_size'
+        """)
+        if not cur.fetchone():
+            cur.execute("ALTER TABLE images ADD COLUMN file_size INTEGER")
+            print("✅ Добавлена колонка file_size в images")
+
+        conn.commit()
+    except Exception as e:
+        print(f"⚠️ Ошибка при обновлении images: {e}")
+        conn.rollback()
+    finally:
+        cur.close()
+        conn.close()
+
+
+def ensure_project_chat(project_id, tutor_id, student_id=None):
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("SELECT title FROM projects WHERE id=%s", (project_id,))
     proj = cur.fetchone()
     chat_name = proj['title'] if proj else "Проект"
-    # Проверяем, существует ли уже чат для этого проекта
     cur.execute("SELECT id FROM chats WHERE name=%s AND is_group=TRUE", (chat_name,))
     chat = cur.fetchone()
     if chat:
@@ -149,21 +235,21 @@ def ensure_project_chat(project_id, tutor_id, student_id=None):
             INSERT INTO chats (id, name, is_group, created_at, updated_at)
             VALUES (%s, %s, TRUE, NOW(), NOW())
         """, (chat_id, chat_name))
-    # Добавляем преподавателя (если ещё не добавлен)
     cur.execute("SELECT 1 FROM chat_members WHERE chat_id=%s AND user_id=%s", (chat_id, tutor_id))
     if not cur.fetchone():
-        cur.execute("INSERT INTO chat_members (chat_id, user_id, created_at) VALUES (%s, %s, NOW())", (chat_id, tutor_id))
-    # Добавляем студента, если передан
+        cur.execute("INSERT INTO chat_members (chat_id, user_id, created_at) VALUES (%s, %s, NOW())",
+                    (chat_id, tutor_id))
     if student_id:
         cur.execute("SELECT 1 FROM chat_members WHERE chat_id=%s AND user_id=%s", (chat_id, student_id))
         if not cur.fetchone():
-            cur.execute("INSERT INTO chat_members (chat_id, user_id, created_at) VALUES (%s, %s, NOW())", (chat_id, student_id))
+            cur.execute("INSERT INTO chat_members (chat_id, user_id, created_at) VALUES (%s, %s, NOW())",
+                        (chat_id, student_id))
     conn.commit()
     cur.close()
     conn.close()
     return chat_id
 
-# ----- Создание администратора при первом запуске -----
+
 def create_admin_if_not_exists():
     conn = get_db_connection()
     cur = conn.cursor()
@@ -194,6 +280,7 @@ def create_admin_if_not_exists():
         cur.close()
         conn.close()
 
+
 # ----- Маршруты -----
 @app.route('/')
 def index():
@@ -201,7 +288,7 @@ def index():
     cur = conn.cursor()
     cur.execute("""
         SELECT p.id, p.title, p.description, p.deadline, p.difficulty, p.max_students,
-               u.first_name AS name, u.last_name AS surname,
+               u.first_name AS name, u.last_name AS surname, u.avatar_url,
                (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url
         FROM projects p
         JOIN users u ON p.id_tutor = u.id
@@ -222,16 +309,19 @@ def index():
     conn.close()
     return render_template('index.html', projects=projects, news=news)
 
+
 @app.route('/catalog')
 def catalog():
     search = request.args.get('search', '')
     topic_id = request.args.get('topic', '')
+    complexity = request.args.get('complexity', '')
     conn = get_db_connection()
     cur = conn.cursor()
     query = """
         SELECT p.id, p.title, p.description, p.deadline, p.difficulty, p.max_students,
-               u.first_name AS name, u.last_name AS surname, p.topic_id,
-               (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url
+               u.first_name AS name, u.last_name AS surname, u.avatar_url, p.topic_id,
+               (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url,
+               (SELECT COUNT(*) FROM applications WHERE project_id=p.id AND status='accepted') AS accepted_count
         FROM projects p
         JOIN users u ON p.id_tutor = u.id
         WHERE p.status = 'открыт'
@@ -243,6 +333,9 @@ def catalog():
     if topic_id:
         query += " AND p.topic_id = %s"
         params.append(topic_id)
+    if complexity:
+        query += " AND p.difficulty = %s"
+        params.append(complexity)
     query += " ORDER BY p.created_at DESC"
     cur.execute(query, params)
     projects = cur.fetchall()
@@ -251,7 +344,8 @@ def catalog():
     cur.close()
     conn.close()
     return render_template('catalog_projects.html', projects=projects, topics=topics,
-                           search_query=search, selected_topic=topic_id)
+                           search_query=search, selected_topic=topic_id, selected_complexity=complexity)
+
 
 @app.route('/project/<uuid:project_id>')
 def project_detail(project_id):
@@ -259,7 +353,7 @@ def project_detail(project_id):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT p.*, u.first_name AS tutor_name, u.last_name AS tutor_surname,
+        SELECT p.*, u.first_name AS tutor_name, u.last_name AS tutor_surname, u.avatar_url AS tutor_avatar,
                t.name AS topic_name,
                (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url
         FROM projects p
@@ -271,6 +365,14 @@ def project_detail(project_id):
     if not project:
         flash('Проект не найден.', 'error')
         return redirect(url_for('catalog'))
+
+    cur.execute("""
+        SELECT image_url FROM images 
+        WHERE entity_type='project' AND entity_id=%s 
+        ORDER BY sort_order
+    """, (project_id_str,))
+    project_images = [img['image_url'] for img in cur.fetchall()]
+
     has_accepted = False
     if session.get('role') == 'student' and session.get('user_id'):
         cur.execute("""
@@ -280,7 +382,9 @@ def project_detail(project_id):
         has_accepted = cur.fetchone() is not None
     cur.close()
     conn.close()
-    return render_template('project_card.html', project=project, has_accepted_application=has_accepted)
+    return render_template('project_card.html', project=project, has_accepted_application=has_accepted,
+                           project_images=project_images)
+
 
 @app.route('/apply/<uuid:project_id>', methods=['POST'])
 def apply_project(project_id):
@@ -306,6 +410,7 @@ def apply_project(project_id):
     conn.close()
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 @app.route('/complete/<uuid:project_id>', methods=['POST'])
 def complete_project(project_id):
     if session.get('role') != 'student':
@@ -329,6 +434,7 @@ def complete_project(project_id):
     conn.close()
     return redirect(url_for('project_detail', project_id=project_id))
 
+
 @app.route('/my_projects')
 @teacher_required
 def my_projects():
@@ -344,6 +450,7 @@ def my_projects():
     cur.close()
     conn.close()
     return render_template('my_projects.html', projects=projects)
+
 
 @app.route('/add_project', methods=['GET', 'POST'])
 @teacher_required
@@ -365,14 +472,7 @@ def add_project():
             max_students = int(max_students)
         except:
             max_students = 1
-        image_file = request.files.get('image')
-        image_url = None
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            unique_name = f"{uuid.uuid4().hex}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-            image_file.save(filepath)
-            image_url = f"uploads/{unique_name}"
+
         project_id = str(uuid.uuid4())
         cur.execute("""
             INSERT INTO projects (id, id_tutor, title, description, requirements, details,
@@ -380,11 +480,20 @@ def add_project():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'открыт', NOW(), NOW(), %s)
         """, (project_id, session['user_id'], title, description, requirements,
               details, topic_id, difficulty, deadline, max_students))
-        if image_url:
-            cur.execute("""
-                INSERT INTO images (id, entity_type, entity_id, image_url, image_type, sort_order, is_active, created_at, updated_at)
-                VALUES (%s, 'project', %s, %s, 'main', 0, TRUE, NOW(), NOW())
-            """, (str(uuid.uuid4()), project_id, image_url))
+
+        images = request.files.getlist('images')
+        for idx, img in enumerate(images):
+            if img and allowed_file(img.filename):
+                filename = secure_filename(img.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                img.save(filepath)
+                image_url = f"uploads/{unique_name}"
+                cur.execute("""
+                    INSERT INTO images (id, entity_type, entity_id, image_url, image_type, sort_order, is_active, created_at, updated_at)
+                    VALUES (%s, 'project', %s, %s, 'main', %s, TRUE, NOW(), NOW())
+                """, (str(uuid.uuid4()), project_id, image_url, idx))
+
         conn.commit()
         log_action(session['user_id'], 'add_project', f'Создан проект {title}')
         flash('Проект создан!', 'success')
@@ -392,6 +501,7 @@ def add_project():
     cur.close()
     conn.close()
     return render_template('add_project.html', topics=topics)
+
 
 @app.route('/edit_project/<uuid:project_id>', methods=['GET', 'POST'])
 @teacher_required
@@ -404,8 +514,14 @@ def edit_project(project_id):
     if not project:
         flash('Проект не найден или доступ запрещён.', 'error')
         return redirect(url_for('my_projects'))
+
     cur.execute("SELECT id, name FROM topics")
     topics = cur.fetchall()
+
+    cur.execute("SELECT image_url FROM images WHERE entity_type='project' AND entity_id=%s ORDER BY sort_order",
+                (project_id_str,))
+    existing_images = cur.fetchall()
+
     if request.method == 'POST':
         title = request.form['title']
         description = request.form.get('description', '')
@@ -420,30 +536,55 @@ def edit_project(project_id):
             max_students = int(max_students)
         except:
             max_students = 1
+
         cur.execute("""
             UPDATE projects SET title=%s, description=%s, requirements=%s, details=%s,
                 topic_id=%s, difficulty=%s, deadline=%s, status=%s, max_students=%s, updated_at=NOW()
             WHERE id=%s
-        """, (title, description, requirements, details, topic_id, difficulty, deadline, status, max_students, project_id_str))
-        image_file = request.files.get('image')
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            unique_name = f"{uuid.uuid4().hex}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-            image_file.save(filepath)
-            image_url = f"uploads/{unique_name}"
-            cur.execute("DELETE FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
-            cur.execute("""
-                INSERT INTO images (id, entity_type, entity_id, image_url, image_type, sort_order, is_active, created_at, updated_at)
-                VALUES (%s, 'project', %s, %s, 'main', 0, TRUE, NOW(), NOW())
-            """, (str(uuid.uuid4()), project_id_str, image_url))
+        """, (title, description, requirements, details, topic_id, difficulty, deadline, status, max_students,
+              project_id_str))
+
+        images = request.files.getlist('images')
+        for idx, img in enumerate(images):
+            if img and allowed_file(img.filename):
+                filename = secure_filename(img.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                img.save(filepath)
+                image_url = f"uploads/{unique_name}"
+                cur.execute("""
+                    INSERT INTO images (id, entity_type, entity_id, image_url, image_type, sort_order, is_active, created_at, updated_at)
+                    VALUES (%s, 'project', %s, %s, 'main', %s, TRUE, NOW(), NOW())
+                """, (str(uuid.uuid4()), project_id_str, image_url, idx))
+
         conn.commit()
         log_action(session['user_id'], 'edit_project', f'Изменён проект {project_id}')
         flash('Изменения сохранены.', 'success')
         return redirect(url_for('my_projects'))
     cur.close()
     conn.close()
-    return render_template('edit_project.html', project=project, topics=topics)
+    return render_template('edit_project.html', project=project, topics=topics, existing_images=existing_images)
+
+
+@app.route('/delete_project_image', methods=['POST'])
+@teacher_required
+def delete_project_image():
+    data = request.get_json()
+    image_url = data.get('image_url')
+    project_id = data.get('project_id')
+    if image_url and project_id:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM images WHERE image_url=%s AND entity_id=%s", (image_url, project_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_url.replace('uploads/', ''))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
 
 @app.route('/project_applications/<uuid:project_id>')
 @teacher_required
@@ -456,7 +597,7 @@ def project_applications(project_id):
         flash('Нет доступа к заявкам этого проекта.', 'error')
         return redirect(url_for('my_projects'))
     cur.execute("""
-        SELECT a.id, a.status, a.applied_at, u.id AS student_id, u.first_name, u.last_name, u.email
+        SELECT a.id, a.status, a.applied_at, u.id AS student_id, u.first_name, u.last_name, u.email, u.avatar_url
         FROM applications a
         JOIN users u ON a.student_id = u.id
         WHERE a.project_id = %s
@@ -467,6 +608,7 @@ def project_applications(project_id):
     conn.close()
     return render_template('project_applications.html', apps=apps)
 
+
 @app.route('/update_application/<uuid:app_id>/<status>', methods=['POST'])
 @teacher_required
 def update_application(app_id, status):
@@ -476,7 +618,6 @@ def update_application(app_id, status):
     app_id_str = str(app_id)
     conn = get_db_connection()
     cur = conn.cursor()
-    # Получаем данные заявки
     cur.execute("SELECT project_id, student_id FROM applications WHERE id=%s", (app_id_str,))
     app_data = cur.fetchone()
     if not app_data:
@@ -484,27 +625,24 @@ def update_application(app_id, status):
         return redirect(request.referrer or url_for('my_projects'))
     project_id = app_data['project_id']
     student_id = app_data['student_id']
-    # Проверяем, что преподаватель владеет проектом
     cur.execute("SELECT id_tutor, max_students FROM projects WHERE id=%s", (project_id,))
     project = cur.fetchone()
     if not project or project['id_tutor'] != session['user_id']:
         flash('Нет прав на изменение этой заявки.', 'error')
         return redirect(request.referrer or url_for('my_projects'))
     if status == 'accepted':
-        # Проверяем количество уже принятых студентов
         cur.execute("SELECT COUNT(*) AS cnt FROM applications WHERE project_id=%s AND status='accepted'", (project_id,))
         accepted_count = cur.fetchone()['cnt']
         if accepted_count >= project['max_students']:
-            flash(f'Невозможно принять: проект уже набрал {accepted_count} из {project["max_students"]} студентов.', 'error')
+            flash(f'Невозможно принять: проект уже набрал {accepted_count} из {project["max_students"]} студентов.',
+                  'error')
             return redirect(request.referrer or url_for('my_projects'))
-    # Обновляем статус заявки
     cur.execute("""
         UPDATE applications SET status=%s, updated_at=NOW()
         WHERE id=%s
     """, (status, app_id_str))
     conn.commit()
     if status == 'accepted':
-        # Создаём/добавляем в групповой чат проекта
         ensure_project_chat(project_id, project['id_tutor'], student_id)
         log_action(session['user_id'], 'accept_application', f'Принята заявка {app_id}')
         flash(f'Заявка принята. Студент добавлен в групповой чат проекта.', 'success')
@@ -514,6 +652,7 @@ def update_application(app_id, status):
     cur.close()
     conn.close()
     return redirect(request.referrer or url_for('my_projects'))
+
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -525,16 +664,25 @@ def profile():
         conn.commit()
         flash('Информация обновлена.', 'success')
         log_action(session['user_id'], 'update_profile', 'Изменено поле about')
+
+    # Добавляем рейтинг
     cur.execute("""
-        SELECT id, email, first_name AS name, last_name AS surname, about, role, created_at
-        FROM users WHERE id = %s
+        SELECT u.id, u.email, u.first_name AS name, u.last_name AS surname, 
+               u.about, u.role, u.created_at, u.avatar_url,
+               COALESCE(AVG(r.rating), 0) AS rating
+        FROM users u
+        LEFT JOIN reviews r ON r.recipient_id = u.id
+        WHERE u.id = %s
+        GROUP BY u.id, u.email, u.first_name, u.last_name, u.about, u.role, u.created_at, u.avatar_url
     """, (session['user_id'],))
     user = cur.fetchone()
+
     student_info = None
     active_projects = 0
     completed_projects = 0
     total_applications = 0
     projects_count = 0
+
     if session['role'] == 'student':
         cur.execute("SELECT course FROM students WHERE user_id=%s", (session['user_id'],))
         std = cur.fetchone()
@@ -556,7 +704,7 @@ def profile():
         cur.execute("SELECT COUNT(*) AS cnt FROM applications WHERE student_id=%s", (session['user_id'],))
         row = cur.fetchone()
         total_applications = row['cnt'] if row else 0
-    else:  # teacher or admin
+    else:
         cur.execute("SELECT COUNT(*) AS cnt FROM projects WHERE id_tutor=%s", (session['user_id'],))
         row = cur.fetchone()
         projects_count = row['cnt'] if row else 0
@@ -567,11 +715,41 @@ def profile():
         """, (session['user_id'],))
         row = cur.fetchone()
         completed_projects = row['cnt'] if row else 0
+
     cur.close()
     conn.close()
+
     return render_template('profile.html', user=user, student_info=student_info,
                            active_projects=active_projects, completed_projects=completed_projects,
                            total_applications=total_applications, projects_count=projects_count)
+
+
+@app.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    if 'avatar' not in request.files:
+        flash('Нет файла для загрузки', 'error')
+        return redirect(url_for('profile'))
+
+    file = request.files['avatar']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        unique_name = f"{uuid.uuid4().hex}_{filename}"
+        filepath = os.path.join(app.config['AVATAR_FOLDER'], unique_name)
+        file.save(filepath)
+        avatar_url = f"avatars/{unique_name}"
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET avatar_url=%s WHERE id=%s", (avatar_url, session['user_id']))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('Аватар успешно загружен!', 'success')
+    else:
+        flash('Неверный формат файла', 'error')
+    return redirect(url_for('profile'))
+
 
 @app.route('/my_applications')
 def my_applications():
@@ -591,6 +769,7 @@ def my_applications():
     cur.close()
     conn.close()
     return render_template('my_applications.html', apps=apps)
+
 
 @app.route('/reviews', methods=['GET', 'POST'])
 def reviews():
@@ -617,13 +796,14 @@ def reviews():
             flash('Отзыв отправлен!', 'success')
         return redirect(url_for('reviews'))
     if session['role'] == 'student':
-        cur.execute("SELECT id, first_name AS name, last_name AS surname FROM users WHERE role='teacher'")
+        cur.execute("SELECT id, first_name AS name, last_name AS surname, avatar_url FROM users WHERE role='teacher'")
     else:
-        cur.execute("SELECT id, first_name AS name, last_name AS surname FROM users WHERE role='student'")
+        cur.execute("SELECT id, first_name AS name, last_name AS surname, avatar_url FROM users WHERE role='student'")
     recipients = cur.fetchall()
     cur.close()
     conn.close()
     return render_template('reviews.html', recipients=recipients)
+
 
 @app.route('/view_reviews/<uuid:user_id>')
 def view_reviews(user_id):
@@ -631,7 +811,7 @@ def view_reviews(user_id):
     cur = conn.cursor()
     cur.execute("""
         SELECT r.rating, r.comment, r.created_at,
-               u.first_name AS name, u.last_name AS surname
+               u.first_name AS name, u.last_name AS surname, u.avatar_url
         FROM reviews r
         JOIN users u ON r.author_id = u.id
         WHERE r.recipient_id = %s
@@ -641,6 +821,7 @@ def view_reviews(user_id):
     cur.close()
     conn.close()
     return render_template('view_reviews.html', reviews=reviews_list)
+
 
 # ----- ЧАТЫ -----
 @app.route('/chats')
@@ -660,6 +841,7 @@ def chats_list():
     conn.close()
     return render_template('chats_list.html', chats=chats)
 
+
 @app.route('/chat/<uuid:chat_id>')
 def chat(chat_id):
     chat_id_str = str(chat_id)
@@ -674,10 +856,13 @@ def chat(chat_id):
     chat_name = chat_row['name'] if chat_row else 'Чат'
     cur.execute("""
         SELECT m.id, m.content, m.sent_at, m.sender_id,
-               u.first_name AS name, u.last_name AS surname
+               u.first_name AS name, u.last_name AS surname, u.avatar_url,
+               COALESCE(json_agg(DISTINCT jsonb_build_object('id', ma.id, 'file_url', ma.file_url, 'file_name', ma.file_name, 'file_size', ma.file_size)) FILTER (WHERE ma.id IS NOT NULL), '[]') AS attachments
         FROM messages m
         JOIN users u ON m.sender_id = u.id
+        LEFT JOIN message_attachments ma ON m.id = ma.message_id
         WHERE m.chat_id = %s
+        GROUP BY m.id, u.id
         ORDER BY m.sent_at
     """, (chat_id_str,))
     messages = cur.fetchall()
@@ -690,6 +875,7 @@ def chat(chat_id):
     conn.close()
     return render_template('chat.html', chat_id=chat_id, chat_name=chat_name, messages=messages)
 
+
 @app.route('/send_message/<uuid:chat_id>', methods=['POST'])
 def send_message(chat_id):
     chat_id_str = str(chat_id)
@@ -697,24 +883,50 @@ def send_message(chat_id):
     if not content:
         flash('Сообщение не может быть пустым.', 'error')
         return redirect(url_for('chat', chat_id=chat_id))
+
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT 1 FROM chat_members WHERE chat_id=%s AND user_id=%s", (chat_id_str, session['user_id']))
-    if not cur.fetchone():
-        flash('Нет доступа.', 'error')
-        return redirect(url_for('chats_list'))
-    msg_id = str(uuid.uuid4())
-    cur.execute("""
-        INSERT INTO messages (id, chat_id, sender_id, content, is_read, sent_at, updated_at)
-        VALUES (%s, %s, %s, %s, FALSE, NOW(), NOW())
-    """, (msg_id, chat_id_str, session['user_id'], content))
-    cur.execute("UPDATE chats SET last_message=%s, updated_at=NOW() WHERE id=%s", (content[:255], chat_id_str))
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        cur.execute("SELECT 1 FROM chat_members WHERE chat_id=%s AND user_id=%s", (chat_id_str, session['user_id']))
+        if not cur.fetchone():
+            flash('Нет доступа.', 'error')
+            return redirect(url_for('chats_list'))
+
+        msg_id = str(uuid.uuid4())
+        cur.execute("""
+            INSERT INTO messages (id, chat_id, sender_id, content, is_read, sent_at, updated_at)
+            VALUES (%s, %s, %s, %s, FALSE, NOW(), NOW())
+        """, (msg_id, chat_id_str, session['user_id'], content))
+
+        attachments = request.files.getlist('attachments')
+        for attachment in attachments:
+            if attachment and allowed_file(attachment.filename):
+                filename = secure_filename(attachment.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                attachment.save(filepath)
+                file_url = f"uploads/{unique_name}"
+                file_size = os.path.getsize(filepath)
+                cur.execute("""
+                    INSERT INTO message_attachments (id, message_id, file_url, file_name, file_size, created_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                """, (str(uuid.uuid4()), msg_id, file_url, filename, file_size))
+
+        cur.execute("UPDATE chats SET last_message=%s, updated_at=NOW() WHERE id=%s", (content[:255], chat_id_str))
+        conn.commit()
+        flash('Сообщение отправлено', 'success')
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка при отправке сообщения: {e}")
+        flash(f'Ошибка при отправке: {e}', 'error')
+    finally:
+        cur.close()
+        conn.close()
+
     return redirect(url_for('chat', chat_id=chat_id))
 
-# ----- НОВОСТИ (для всех) -----
+
+# ----- НОВОСТИ -----
 @app.route('/news')
 def news_list():
     conn = get_db_connection()
@@ -729,6 +941,7 @@ def news_list():
     cur.close()
     conn.close()
     return render_template('news.html', news=news)
+
 
 # ----- АДМИН-ПАНЕЛЬ -----
 @app.route('/admin')
@@ -749,23 +962,25 @@ def admin_dashboard():
     return render_template('admin/dashboard.html', users_cnt=users_cnt, projects_cnt=projects_cnt,
                            apps_cnt=apps_cnt, reviews_cnt=reviews_cnt)
 
+
 @app.route('/admin/users')
 @admin_required
 def admin_users():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT u.id, u.first_name AS name, u.last_name AS surname, u.email, u.role,
+        SELECT u.id, u.first_name AS name, u.last_name AS surname, u.email, u.role, u.avatar_url,
                COALESCE(AVG(r.rating), 0) AS rating
         FROM users u
         LEFT JOIN reviews r ON r.recipient_id = u.id
-        GROUP BY u.id, u.first_name, u.last_name, u.email, u.role
+        GROUP BY u.id, u.first_name, u.last_name, u.email, u.role, u.avatar_url
         ORDER BY u.created_at
     """)
     users = cur.fetchall()
     cur.close()
     conn.close()
     return render_template('admin/users.html', users=users)
+
 
 @app.route('/admin/delete_user/<uuid:user_id>')
 @admin_required
@@ -774,15 +989,32 @@ def admin_delete_user(user_id):
     if user_id_str == session['user_id']:
         flash('Нельзя удалить самого себя.', 'error')
         return redirect(url_for('admin_users'))
+
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM users WHERE id=%s", (user_id_str,))
-    conn.commit()
-    log_action(session['user_id'], 'delete_user', f'Удалён пользователь {user_id}')
-    flash('Пользователь удалён.', 'success')
-    cur.close()
-    conn.close()
+    try:
+        cur.execute("DELETE FROM chat_members WHERE user_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM applications WHERE student_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM projects WHERE id_tutor = %s", (user_id_str,))
+        cur.execute("DELETE FROM reviews WHERE author_id = %s OR recipient_id = %s", (user_id_str, user_id_str))
+        cur.execute("DELETE FROM students WHERE user_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM teachers WHERE user_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM admins WHERE user_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM logs WHERE user_id = %s", (user_id_str,))
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id_str,))
+        conn.commit()
+        log_action(session['user_id'], 'delete_user', f'Удалён пользователь {user_id}')
+        flash('Пользователь удалён.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Ошибка при удалении: {e}', 'error')
+        print(f"Ошибка удаления пользователя: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
     return redirect(url_for('admin_users'))
+
 
 @app.route('/admin/add_user', methods=['GET', 'POST'])
 @admin_required
@@ -803,12 +1035,11 @@ def admin_add_user():
                 VALUES (%s, %s, %s, %s, %s, %s, TRUE, TRUE, NOW(), NOW())
             """, (user_id, email, hashed, name, surname, role))
             if role == 'teacher':
-                department = request.form.get('department', 'Не указан')
                 position = request.form.get('position', 'Преподаватель')
                 cur.execute("""
-                    INSERT INTO teachers (user_id, department, position, created_at, updated_at)
-                    VALUES (%s, %s, %s, NOW(), NOW())
-                """, (user_id, department, position))
+                    INSERT INTO teachers (user_id, position, created_at, updated_at)
+                    VALUES (%s, %s, NOW(), NOW())
+                """, (user_id, position))
             elif role == 'admin':
                 cur.execute("""
                     INSERT INTO admins (user_id, admin_level, created_at, updated_at)
@@ -826,6 +1057,7 @@ def admin_add_user():
         return redirect(url_for('admin_users'))
     return render_template('admin/add_user.html')
 
+
 @app.route('/admin/topics')
 @admin_required
 def admin_topics():
@@ -837,6 +1069,7 @@ def admin_topics():
     conn.close()
     return render_template('admin/topics.html', topics=topics)
 
+
 @app.route('/admin/add_topic', methods=['POST'])
 @admin_required
 def admin_add_topic():
@@ -845,15 +1078,17 @@ def admin_add_topic():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO topics (id, name, created_at) VALUES (nextval('topics_id_seq'), %s, NOW())", (name,))
+            cur.execute("INSERT INTO topics (id, name, created_at) VALUES (nextval('topics_id_seq'), %s, NOW())",
+                        (name,))
             conn.commit()
             flash('Тема добавлена.', 'success')
-        except Exception:
+        except Exception as e:
             flash('Такая тема уже существует.', 'error')
         finally:
             cur.close()
             conn.close()
     return redirect(url_for('admin_topics'))
+
 
 @app.route('/admin/delete_topic/<int:topic_id>')
 @admin_required
@@ -867,16 +1102,19 @@ def admin_delete_topic(topic_id):
     conn.close()
     return redirect(url_for('admin_topics'))
 
+
 @app.route('/admin/news')
 @admin_required
 def admin_news_list():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, title, content, image_url, published_at FROM news_feed WHERE type='news' ORDER BY published_at DESC")
+    cur.execute(
+        "SELECT id, title, content, image_url, published_at FROM news_feed WHERE type='news' ORDER BY published_at DESC")
     news = cur.fetchall()
     cur.close()
     conn.close()
     return render_template('admin/news_list.html', news=news)
+
 
 @app.route('/admin/add_news', methods=['GET', 'POST'])
 @admin_required
@@ -884,20 +1122,21 @@ def admin_add_news():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        image_file = request.files.get('image')
-        image_url = None
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            unique_name = f"{uuid.uuid4().hex}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-            image_file.save(filepath)
-            image_url = f"uploads/{unique_name}"
+        image_urls = []
+        images = request.files.getlist('images')
+        for img in images:
+            if img and allowed_file(img.filename):
+                filename = secure_filename(img.filename)
+                unique_name = f"{uuid.uuid4().hex}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+                img.save(filepath)
+                image_urls.append(f"uploads/{unique_name}")
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO news_feed (id, type, title, content, image_url, published_at, created_at, updated_at)
             VALUES (%s, 'news', %s, %s, %s, NOW(), NOW(), NOW())
-        """, (str(uuid.uuid4()), title, content, image_url))
+        """, (str(uuid.uuid4()), title, content, ','.join(image_urls) if image_urls else None))
         conn.commit()
         log_action(session['user_id'], 'add_news', f'Новость: {title}')
         flash('Новость опубликована.', 'success')
@@ -907,29 +1146,137 @@ def admin_add_news():
     return render_template('admin/add_news.html')
 
 
+@app.route('/admin/delete_news/<uuid:news_id>')
+@admin_required
+def admin_delete_news(news_id):
+    news_id_str = str(news_id)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT image_url FROM news_feed WHERE id=%s", (news_id_str,))
+        news = cur.fetchone()
+        if news and news['image_url']:
+            for img_url in news['image_url'].split(','):
+                if img_url:
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], img_url.replace('uploads/', ''))
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+
+        cur.execute("DELETE FROM news_feed WHERE id=%s", (news_id_str,))
+        conn.commit()
+        log_action(session['user_id'], 'delete_news', f'Удалена новость {news_id}')
+        flash('Новость удалена.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Ошибка при удалении: {e}', 'error')
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('admin_news_list'))
+
+
+@app.route('/admin/projects')
+@admin_required
+def admin_projects():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT p.id, p.title, p.status, p.created_at, p.max_students,
+               u.first_name AS tutor_name, u.last_name AS tutor_surname,
+               (SELECT COUNT(*) FROM applications WHERE project_id=p.id) AS apps_count
+        FROM projects p
+        JOIN users u ON p.id_tutor = u.id
+        ORDER BY p.created_at DESC
+    """)
+    projects = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('admin/projects.html', projects=projects)
+
+
+@app.route('/admin/delete_project/<uuid:project_id>')
+@admin_required
+def admin_delete_project(project_id):
+    project_id_str = str(project_id)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT image_url FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
+        images = cur.fetchall()
+        for img in images:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], img['image_url'].replace('uploads/', ''))
+            if os.path.exists(filepath):
+                os.remove(filepath)
+
+        cur.execute("DELETE FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
+        cur.execute("DELETE FROM applications WHERE project_id=%s", (project_id_str,))
+        cur.execute("DELETE FROM projects WHERE id=%s", (project_id_str,))
+        conn.commit()
+        log_action(session['user_id'], 'admin_delete_project', f'Удалён проект {project_id}')
+        flash('Проект удалён.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Ошибка при удалении: {e}', 'error')
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('admin_projects'))
+
+
+@app.route('/teacher/delete_project/<uuid:project_id>')
+@teacher_required
+def teacher_delete_project(project_id):
+    project_id_str = str(project_id)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id_tutor FROM projects WHERE id=%s", (project_id_str,))
+        project = cur.fetchone()
+        if not project or project['id_tutor'] != session['user_id']:
+            flash('Нет прав на удаление этого проекта.', 'error')
+            return redirect(url_for('my_projects'))
+
+        cur.execute("SELECT image_url FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
+        images = cur.fetchall()
+        for img in images:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], img['image_url'].replace('uploads/', ''))
+            if os.path.exists(filepath):
+                os.remove(filepath)
+
+        cur.execute("DELETE FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
+        cur.execute("DELETE FROM applications WHERE project_id=%s", (project_id_str,))
+        cur.execute("DELETE FROM projects WHERE id=%s", (project_id_str,))
+        conn.commit()
+        log_action(session['user_id'], 'teacher_delete_project', f'Удалён проект {project_id}')
+        flash('Проект удалён.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Ошибка при удалении: {e}', 'error')
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for('my_projects'))
+
+
 @app.route('/admin/query', methods=['GET', 'POST'])
 @admin_required
 def admin_query():
     result = None
     error = None
-
     if request.method == 'POST':
         query = request.form.get('query', '').strip()
-
         if not query:
             error = "❌ Запрос не может быть пустым."
         else:
-            # Запрещённые ключевые слова
             dangerous_keywords = ['DROP', 'DELETE', 'UPDATE', 'INSERT', 'ALTER',
                                   'TRUNCATE', 'CREATE', 'REPLACE', 'MERGE']
             query_upper = query.upper()
             if not query_upper.startswith('SELECT'):
-                error = "❌ Разрешены только SELECT-запросы. Изменение данных (INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE) запрещено."
+                error = "❌ Разрешены только SELECT-запросы. Изменение данных запрещено."
             else:
-                # Ищем опасные слова как отдельные токены
                 tokens = query_upper.split()
                 if any(kw in tokens for kw in dangerous_keywords):
-                    error = "❌ Запрос содержит запрещённые ключевые слова (DROP, DELETE и т.п.). Операция отклонена."
+                    error = "❌ Запрос содержит запрещённые ключевые слова."
                 else:
                     try:
                         conn = get_db_connection()
@@ -942,6 +1289,7 @@ def admin_query():
                         error = f"Ошибка выполнения SQL: {str(e)}"
     return render_template('admin/query.html', result=result, error=error)
 
+
 @app.route('/admin/logs')
 @admin_required
 def admin_logs():
@@ -953,6 +1301,7 @@ def admin_logs():
     conn.close()
     return render_template('admin/logs.html', logs=logs)
 
+
 # ----- АУТЕНТИФИКАЦИЯ -----
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -961,7 +1310,9 @@ def login():
         password = request.form['password']
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, email, password_hash, first_name, last_name, role FROM users WHERE email=%s", (email,))
+        cur.execute(
+            "SELECT id, email, password_hash, first_name, last_name, role, avatar_url FROM users WHERE email=%s",
+            (email,))
         user = cur.fetchone()
         cur.close()
         conn.close()
@@ -975,6 +1326,7 @@ def login():
         else:
             flash('Неверный email или пароль.', 'error')
     return render_template('login.html')
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -1015,6 +1367,7 @@ def register():
             conn.close()
     return render_template('register.html')
 
+
 @app.route('/logout')
 def logout():
     if 'user_id' in session:
@@ -1023,8 +1376,13 @@ def logout():
     flash('Вы вышли из системы.', 'info')
     return redirect(url_for('login'))
 
+
 # ----- Запуск -----
 if __name__ == '__main__':
+    fix_project_dates()
     ensure_max_students_column()
+    ensure_avatar_column()
+    ensure_message_attachments()
+    ensure_project_images_multiple()
     create_admin_if_not_exists()
     app.run(debug=True)
