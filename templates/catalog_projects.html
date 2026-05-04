@@ -19,7 +19,7 @@
                         <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="16" height="16"> срок: {{ project.deadline if project.deadline else '—' }}
                     </div>
                     <div class="ui-heading s primary mt-2 mb-1">{{ project.title }}</div>
-                    <p class="ui-text s gray">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+                    <p class="ui-text s gray">{{ project.description[:100] if project.description else '' }}{% if project.description and project.description|length > 100 %}...{% endif %}</p>
                     <div class="ui-text s semibold">преподаватель: {{ project.name }} {{ project.surname }}</div>
                     <div class="ui-text xs">👥 Мест: {{ project.accepted_count|default(0) }} / {{ project.max_students }}</div>
                     <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-link primary">Подробнее</a>
@@ -43,27 +43,28 @@
                         </button>
                     </div>
                 </div>
+                {% if selected_topic %}
+                <input type="hidden" name="topic" value="{{ selected_topic }}">
+                {% endif %}
+                {% if selected_complexity %}
+                <input type="hidden" name="complexity" value="{{ selected_complexity }}">
+                {% endif %}
             </form>
             <hr>
             <div class="filter-group">
                 <div class="ui-text semibold">Тема</div>
-                <form method="get" action="{{ url_for('catalog') }}">
-                    <select name="topic" class="ui-input filter-select" data-auto-submit>
-                        <option value="">Все темы</option>
-                        {% for topic in topics %}
-                        <option value="{{ topic.id }}" {% if selected_topic|string == topic.id|string %}selected{% endif %}>{{ topic.name }}</option>
-                        {% endfor %}
-                    </select>
-                    {% if search_query %}
-                    <input type="hidden" name="search" value="{{ search_query }}">
-                    {% endif %}
-                </form>
+                <select name="topic" class="ui-input filter-select" data-auto-submit onchange="this.form.submit()">
+                    <option value="">Все темы</option>
+                    {% for topic in topics %}
+                    <option value="{{ topic.id }}" {% if selected_topic|string == topic.id|string %}selected{% endif %}>{{ topic.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="filter-group">
                 <div class="ui-text semibold">Сложность</div>
-                <label><input type="radio" name="complexity" value="сложный"> сложный</label>
-                <label><input type="radio" name="complexity" value="средний"> средний</label>
-                <label><input type="radio" name="complexity" value="легкий" checked> лёгкий</label>
+                <label><input type="radio" name="complexity" value="сложный" {% if selected_complexity == 'сложный' %}checked{% endif %}> сложный</label>
+                <label><input type="radio" name="complexity" value="средний" {% if selected_complexity == 'средний' %}checked{% endif %}> средний</label>
+                <label><input type="radio" name="complexity" value="легкий" {% if selected_complexity == 'легкий' or not selected_complexity %}checked{% endif %}> лёгкий</label>
             </div>
             <button id="applyFiltersBtn" class="ui-button primary m w-full mt-4">Применить фильтры</button>
         </div>

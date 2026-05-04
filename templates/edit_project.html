@@ -5,23 +5,23 @@
 <form method="post" class="ui-vstack gap-24 max-w-lg mx-auto" enctype="multipart/form-data">
     <div class="form-group">
         <label class="ui-text semibold">Название</label>
-        <input type="text" name="title" value="{{ project.title }}" class="ui-input w-full p-3 rounded-xl">
+        <input type="text" name="title" value="{{ project.title }}" class="ui-input w-full">
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Описание</label>
-        <textarea name="description" rows="4" class="ui-input w-full p-3 rounded-xl">{{ project.description or '' }}</textarea>
+        <textarea name="description" rows="4" class="ui-input w-full">{{ project.description or '' }}</textarea>
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Требования</label>
-        <textarea name="requirements" rows="3" class="ui-input w-full p-3 rounded-xl">{{ project.requirements or '' }}</textarea>
+        <textarea name="requirements" rows="3" class="ui-input w-full">{{ project.requirements or '' }}</textarea>
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Задачи</label>
-        <textarea name="details" rows="3" class="ui-input w-full p-3 rounded-xl">{{ project.details or '' }}</textarea>
+        <textarea name="details" rows="3" class="ui-input w-full">{{ project.details or '' }}</textarea>
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Тема</label>
-        <select name="topic_id" class="ui-input w-full p-3 rounded-xl">
+        <select name="topic_id" class="ui-input w-full">
             <option value="">-- Без темы --</option>
             {% for topic in topics %}
             <option value="{{ topic.id }}" {% if project.topic_id == topic.id %}selected{% endif %}>{{ topic.name }}</option>
@@ -30,7 +30,7 @@
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Сложность</label>
-        <select name="difficulty" class="ui-input w-full p-3 rounded-xl">
+        <select name="difficulty" class="ui-input w-full">
             <option {% if project.difficulty == 'легкий' %}selected{% endif %}>легкий</option>
             <option {% if project.difficulty == 'средний' %}selected{% endif %}>средний</option>
             <option {% if project.difficulty == 'сложный' %}selected{% endif %}>сложный</option>
@@ -38,26 +38,42 @@
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Срок</label>
-        <input type="date" name="deadline" value="{{ project.deadline }}" class="ui-input w-full p-3 rounded-xl">
+        <input type="date" name="deadline" value="{{ project.deadline }}" class="ui-input w-full">
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Статус</label>
-        <select name="status" class="ui-input w-full p-3 rounded-xl">
+        <select name="status" class="ui-input w-full">
             <option {% if project.status == 'открыт' %}selected{% endif %}>открыт</option>
             <option {% if project.status == 'завершён' %}selected{% endif %}>завершён</option>
         </select>
     </div>
     <div class="form-group">
         <label class="ui-text semibold">Максимум студентов</label>
-        <input type="number" name="max_students" min="1" max="20" value="{{ project.max_students or 1 }}" class="ui-input w-full p-3 rounded-xl">
+        <input type="number" name="max_students" min="1" max="20" value="{{ project.max_students or 1 }}" class="ui-input w-full">
     </div>
+    
+    <!-- Существующие изображения -->
+    {% if existing_images %}
     <div class="form-group">
-        <label class="ui-text semibold">Изображение</label>
-        <input type="file" name="image" accept="image/*" class="ui-input">
+        <label class="ui-text semibold">Текущие изображения</label>
+        <div class="image-upload-grid">
+            {% for img in existing_images %}
+            <div class="image-preview">
+                <img src="{{ url_for('static', filename=img.image_url) }}" alt="Изображение проекта">
+                <button type="button" class="remove-image delete-project-image" data-image-url="{{ img.image_url }}" data-project-id="{{ project.id }}">×</button>
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    {% if project.image_url %}
-    <img src="{{ url_for('static', filename=project.image_url) }}" class="preview-img">
     {% endif %}
+    
+    <div class="form-group">
+        <label class="ui-text semibold">Добавить изображения</label>
+        <input type="file" name="images" id="projectImages" accept="image/*" multiple class="ui-input w-full">
+        <div id="imagesPreview" class="image-upload-grid mt-2"></div>
+        <small class="ui-text xs gray">Можно выбрать несколько изображений</small>
+    </div>
+    
     <button type="submit" class="ui-button primary m">Сохранить</button>
 </form>
 {% endblock %}

@@ -2,20 +2,32 @@
 {% block title %}Отзывы{% endblock %}
 {% block hero_title %}Отзывы{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-24">
+<div class="ui-vstack gap-24 max-w-2xl mx-auto">
     {% for review in reviews %}
     <div class="review-card">
-        <div class="ui-hstack justify-between">
-            <div class="ui-heading s primary">{{ review.name }} {{ review.surname }}</div>
-            <div class="ui-text semibold">
-                <img src="{{ url_for('static', filename='icons/golden_star.svg') }}" width="20" height="20" style="vertical-align: middle;"> {{ review.rating }}
+        <div class="review-header">
+            <div class="reviewer-info">
+                {% if review.avatar_url %}
+                <img src="{{ url_for('static', filename=review.avatar_url) }}" class="avatar-sm" alt="{{ review.name }}">
+                {% endif %}
+                <div class="ui-heading s primary">{{ review.name }} {{ review.surname }}</div>
+            </div>
+            <div class="rating-stars">
+                {% for i in range(1, 6) %}
+                    {% if i <= review.rating %}
+                        <span class="star filled">★</span>
+                    {% else %}
+                        <span class="star empty">☆</span>
+                    {% endif %}
+                {% endfor %}
+                <span class="rating-number">({{ review.rating }})</span>
             </div>
         </div>
-        <p class="ui-text gray mt-2">{{ review.comment }}</p>
-        <div class="ui-text xs gray mt-2">{{ review.created_at.strftime('%d.%m.%Y') }}</div>
+        <p class="ui-text gray mt-3">{{ review.comment }}</p>
+        <div class="ui-text xs gray mt-3">{{ review.created_at.strftime('%d.%m.%Y') }}</div>
     </div>
     {% else %}
-    <div class="ui-text gray center">Отзывов пока нет</div>
+    <div class="ui-text gray text-center">Отзывов пока нет</div>
     {% endfor %}
 </div>
 {% endblock %}

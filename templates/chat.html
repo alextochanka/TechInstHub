@@ -6,17 +6,33 @@
     <div id="messages" class="chat-messages">
         {% for msg in messages %}
         <div class="chat-message {% if msg.sender_id == session.user_id %}chat-message-mine{% else %}chat-message-other{% endif %}">
-            <div class="chat-message-sender">{{ msg.name }} {{ msg.surname }}</div>
+            <div class="chat-message-sender">
+                {% if msg.avatar_url %}
+                <img src="{{ url_for('static', filename=msg.avatar_url) }}" class="avatar-sm" alt="{{ msg.name }}">
+                {% endif %}
+                {{ msg.name }} {{ msg.surname }}
+            </div>
             <div class="ui-text">{{ msg.content }}</div>
+            {% if msg.attachments and msg.attachments != '[]' %}
+            <div class="message-attachments">
+                {% for att in msg.attachments %}
+                <div class="message-attachment">
+                    📎 <a href="{{ url_for('static', filename=att.file_url) }}" target="_blank">{{ att.file_name }}</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             <div class="chat-message-time">{{ msg.sent_at.strftime('%H:%M %d.%m') }}</div>
         </div>
         {% endfor %}
     </div>
-    <form method="post" action="{{ url_for('send_message', chat_id=chat_id) }}" class="chat-form">
+    <form method="post" action="{{ url_for('send_message', chat_id=chat_id) }}" class="chat-form" enctype="multipart/form-data">
         <textarea name="content" rows="2" required class="ui-input chat-input" placeholder="Введите сообщение..."></textarea>
+        <input type="file" name="attachments" id="attachmentsInput" accept="image/*,application/pdf,.doc,.docx,.txt" multiple style="display:none;">
         <button type="button" class="ui-button outline s" data-attach-alert>
             <img src="{{ url_for('static', filename='icons/attach.svg') }}" width="24" height="24" alt="Прикрепить">
         </button>
+        <div id="attachmentsPreview" class="chat-attachments"></div>
         <button type="submit" class="ui-button primary m">
             <img src="{{ url_for('static', filename='icons/send.svg') }}" width="24" height="24" alt="Отправить">
         </button>

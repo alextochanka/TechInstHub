@@ -7,21 +7,28 @@
         <label class="ui-text semibold">
             {% if session.role == 'teacher' %}Студент{% else %}Преподаватель{% endif %}
         </label>
-        <select name="recipient_id" class="ui-input w-full p-3 rounded-xl">
+        <select name="recipient_id" class="ui-input w-full">
             {% for r in recipients %}
             <option value="{{ r.id }}">{{ r.name }} {{ r.surname }}</option>
             {% endfor %}
         </select>
     </div>
     <div class="filter-group">
-        <label class="ui-text semibold">Оценка (1–5)</label>
-        <select name="rating" class="ui-input w-full p-3 rounded-xl">
-            <option>5</option><option>4</option><option>3</option><option>2</option><option>1</option>
-        </select>
+        <label class="ui-text semibold">Оценка</label>
+        <div class="rating-input">
+            <input type="hidden" name="rating" id="ratingValue" value="5">
+            <div class="stars">
+                <span class="star filled" data-value="1">★</span>
+                <span class="star filled" data-value="2">★</span>
+                <span class="star filled" data-value="3">★</span>
+                <span class="star filled" data-value="4">★</span>
+                <span class="star filled" data-value="5">★</span>
+            </div>
+        </div>
     </div>
     <div class="filter-group">
         <label class="ui-text semibold">Комментарий</label>
-        <textarea name="comment" rows="4" class="ui-input w-full p-3 rounded-xl"></textarea>
+        <textarea name="comment" rows="4" class="ui-input w-full"></textarea>
     </div>
     <button type="submit" class="ui-button primary m">Отправить отзыв</button>
 </form>

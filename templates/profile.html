@@ -4,9 +4,35 @@
 {% block content %}
 <div class="ui-vstack gap-32 align-center max-w-lg mx-auto">
     <div class="ui-vstack gap-12 align-center">
-        <div class="ui-heading xl blue">
-            <img src="{{ url_for('static', filename='icons/star.svg') }}" width="40" height="40" style="vertical-align: middle;"> {{ user.rating or 0 }}
+        {% if user.avatar_url %}
+        <img id="avatarPreview" src="{{ url_for('static', filename=user.avatar_url) }}" class="avatar-xl" alt="Аватар">
+        {% else %}
+        <div class="avatar-xl bg-blue-50 flex items-center justify-center">
+            <img id="avatarPreview" src="{{ url_for('static', filename='icons/user.svg') }}" width="60" height="60" alt="Нет аватара">
         </div>
+        {% endif %}
+        
+        <form method="post" action="{{ url_for('upload_avatar') }}" enctype="multipart/form-data" class="flex gap-2" id="avatarForm">
+            <input type="file" name="avatar" id="avatarInput" accept="image/*" style="display:none;">
+            <button type="button" onclick="document.getElementById('avatarInput').click()" class="ui-button outline xs">Загрузить аватар</button>
+            <button type="submit" class="ui-button primary xs">Сохранить</button>
+        </form>
+        
+        <div class="profile-rating">
+            <div class="stars-display">
+                {% set rating_value = user.rating|float if user.rating else 0 %}
+                {% set rating_int = rating_value|round(0)|int %}
+                {% for i in range(1, 6) %}
+                    {% if i <= rating_int %}
+                        <span class="star filled">★</span>
+                    {% else %}
+                        <span class="star empty">☆</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div class="rating-value">{{ "%.1f"|format(rating_value) }}</div>
+        </div>
+        
         <div class="ui-text semibold">{{ user.email }}</div>
         {% if session.role == 'student' %}
             <div class="ui-text">Курс: {{ student_info.course if student_info else '—' }}</div>
@@ -21,7 +47,7 @@
     <hr class="w-full">
     <form method="post" class="ui-vstack gap-16 w-full">
         <div class="ui-heading s blue">О себе</div>
-        <textarea name="about" rows="6" class="ui-input w-full p-4 rounded-2xl">{{ user.about or '' }}</textarea>
+        <textarea name="about" rows="6" class="ui-input w-full">{{ user.about or '' }}</textarea>
         <button type="submit" class="ui-button primary m mx-auto">Сохранить</button>
     </form>
     <div class="ui-hstack justify-center gap-20 flex-wrap">
