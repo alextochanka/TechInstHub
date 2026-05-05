@@ -45,7 +45,7 @@ def allowed_file(filename):
 # ----- Глобальная защита -----
 @app.before_request
 def require_login():
-    if 'user_id' in session:
+    if request.path.startswith('/api/v1/') or request.path.startswith('/static/'):
         return
     public_routes = ['login', 'register', 'static']
     if request.endpoint in public_routes:
