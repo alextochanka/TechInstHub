@@ -45,11 +45,13 @@ def allowed_file(filename):
 # ----- Глобальная защита -----
 @app.before_request
 def require_login():
+    if 'user_id' in session:
+        return
     public_routes = ['login', 'register', 'static']
     if request.endpoint in public_routes:
         return
     if 'user_id' not in session:
-        flash('Пожалуйста, войдите в систему.', 'error')
+        flash('Войдите в систему!, 'error')
         return redirect(url_for('login'))
 
 
