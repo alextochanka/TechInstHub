@@ -393,6 +393,61 @@ function initProjectGallery() {
     });
 }
 
+// ---------- Инициализация карточек на главной странице ----------
+function initHomeCards() {
+    // Обработка кликов по карточкам услуг и рекомендаций
+    document.querySelectorAll('.service-card, .rec-card').forEach(card => {
+        // Убираем старые обработчики, чтобы не было дублирования
+        card.removeEventListener('click', card._clickHandler);
+        
+        const clickHandler = function(e) {
+            // Если клик был по кнопке внутри карточки, не триггерим карточку
+            if (e.target.classList && e.target.classList.contains('rec-btn')) {
+                return;
+            }
+            const href = this.getAttribute('data-href');
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        };
+        
+        card._clickHandler = clickHandler;
+        card.addEventListener('click', clickHandler);
+    });
+
+    // Обработка кликов по кнопкам "Подробнее" и "Читать"
+    document.querySelectorAll('.rec-btn').forEach(btn => {
+        btn.removeEventListener('click', btn._clickHandler);
+        
+        const clickHandler = function(e) {
+            e.stopPropagation();
+            const href = this.getAttribute('data-href');
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        };
+        
+        btn._clickHandler = clickHandler;
+        btn.addEventListener('click', clickHandler);
+    });
+
+    // Обработка кликов по ссылкам "смотреть все"
+    document.querySelectorAll('.btn-secondary, .btn-view-all a').forEach(link => {
+        link.removeEventListener('click', link._clickHandler);
+        
+        const clickHandler = function(e) {
+            e.preventDefault();
+            const href = this.getAttribute('data-href');
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        };
+        
+        link._clickHandler = clickHandler;
+        link.addEventListener('click', clickHandler);
+    });
+}
+
 // ---------- Главная инициализация ----------
 document.addEventListener('DOMContentLoaded', () => {
     // Валидация пароля
@@ -431,6 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Удаление изображений проекта
     initDeleteProjectImage();
+
+    // Инициализация карточек на главной странице
+    initHomeCards();
 
     // Специфичная для чата переотправка формы при enter
     const chatTextarea = document.querySelector('.chat-form textarea');
