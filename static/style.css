@@ -1714,3 +1714,559 @@ button, .ui-button, .action-btn, .service-card, .rec-card {
         padding: 14px 20px;
     }
 }
+
+/* -------------------- Карточки новостей, стажировок, мероприятий -------------------- */
+.news-card {
+    display: flex;
+    gap: 24px;
+    background: #fff;
+    border-radius: 24px;
+    padding: 20px;
+    border: 1px solid #eef2ff;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.news-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+.news-image {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 16px;
+}
+.news-image-placeholder {
+    width: 200px;
+    height: 150px;
+    background: #f8fafc;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.news-content {
+    flex: 1;
+}
+.news-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.news-type-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.news-type-badge.news {
+    background: #dbeafe;
+    color: #1e40af;
+}
+.news-type-badge.internship {
+    background: #dcfce7;
+    color: #166534;
+}
+.news-type-badge.event {
+    background: #fef3c7;
+    color: #92400e;
+}
+.event-location-detail {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.news-date {
+    font-size: 14px;
+    color: #6b7280;
+}
+.news-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 12px;
+}
+.news-description {
+    color: #4b5563;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+/* -------------------- Карточка мероприятия (стилизованная) -------------------- */
+.event-card {
+    display: flex;
+    gap: 24px;
+    background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+    border-radius: 24px;
+    padding: 20px;
+    border: 1px solid #eef2ff;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+.event-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+}
+.event-image {
+    width: 200px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 16px;
+}
+.event-image-placeholder {
+    width: 200px;
+    height: 150px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.event-content {
+    flex: 1;
+}
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.event-type {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #fef3c7;
+    color: #d97706;
+}
+.event-location {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.event-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 8px;
+}
+.event-description {
+    color: #4b5563;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+/* -------------------- Фильтры на страницах новостей -------------------- */
+.filter-tabs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+.filter-tab {
+    padding: 8px 20px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #1E3A8A;
+}
+.filter-tab.active {
+    background: #1E3A8A;
+    color: #fff;
+    border-color: #1E3A8A;
+}
+.filter-tab:hover:not(.active) {
+    background: #f8fafc;
+    border-color: #1E3A8A;
+}
+
+/* -------------------- Защита от повторной отправки формы -------------------- */
+button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* -------------------- Адаптив для карточек новостей -------------------- */
+@media (max-width: 768px) {
+    .news-card,
+    .event-card {
+        flex-direction: column;
+    }
+    .news-image,
+    .news-image-placeholder,
+    .event-image,
+    .event-image-placeholder {
+        width: 100%;
+        height: 180px;
+    }
+    .news-title {
+        font-size: 18px;
+    }
+    .event-title {
+        font-size: 20px;
+    }
+}
+
+/* -------------------- Стили для страницы мероприятий (events.html) -------------------- */
+.events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 28px;
+}
+
+.event-card-item {
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #eef2ff;
+}
+
+.event-card-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 30px rgba(0,0,0,0.12);
+}
+
+.event-card-image {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+}
+
+.event-card-image-placeholder {
+    height: 200px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.event-card-content {
+    padding: 24px;
+}
+
+.event-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: #fef3c7;
+    color: #d97706;
+    margin-bottom: 12px;
+}
+
+.event-card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 12px;
+}
+
+.event-details {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.event-detail {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.event-card-description {
+    color: #4b5563;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* -------------------- Стили для страницы стажировок (internships.html) -------------------- */
+.internship-card {
+    display: flex;
+    gap: 28px;
+    background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
+    border-radius: 28px;
+    padding: 28px;
+    border: 1px solid #dcfce7;
+    transition: all 0.3s ease;
+}
+
+.internship-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(0,100,0,0.1);
+}
+
+.internship-image {
+    width: 240px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 20px;
+}
+
+.internship-image-placeholder {
+    width: 240px;
+    height: 180px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.internship-content {
+    flex: 1;
+}
+
+.internship-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.internship-badge {
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.internship-date {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.internship-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #166534;
+    margin-bottom: 16px;
+}
+
+.internship-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.meta-item {
+    font-size: 14px;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.internship-description {
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.internship-requirements {
+    background: #f0fdf4;
+    padding: 16px 20px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+
+.internship-requirements strong {
+    color: #166534;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.internship-requirements ul {
+    margin-left: 20px;
+    color: #4b5563;
+}
+
+.internship-requirements li {
+    margin: 6px 0;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8fafc;
+    border-radius: 32px;
+}
+
+/* -------------------- Фильтры для новостей -------------------- */
+.filter-tabs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.filter-tab {
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #1E3A8A;
+    text-decoration: none;
+}
+
+.filter-tab.active {
+    background: #1E3A8A;
+    color: #fff;
+    border-color: #1E3A8A;
+}
+
+.filter-tab:hover:not(.active) {
+    background: #f8fafc;
+    border-color: #1E3A8A;
+}
+
+/* -------------------- Карточки новостей -------------------- */
+.news-card {
+    display: flex;
+    gap: 24px;
+    background: #fff;
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid #eef2ff;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.news-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+}
+
+.news-image {
+    width: 220px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+.news-image-placeholder {
+    width: 220px;
+    height: 160px;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.news-content {
+    flex: 1;
+}
+
+.news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.news-type-badge {
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.news-type-badge.news {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.news-type-badge.internship {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.news-type-badge.event {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.news-date {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.news-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1E3A8A;
+    margin-bottom: 12px;
+}
+
+.news-description {
+    color: #4b5563;
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.event-location-detail {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Адаптив для карточек */
+@media (max-width: 768px) {
+    .news-card,
+    .internship-card {
+        flex-direction: column;
+    }
+    .news-image,
+    .news-image-placeholder,
+    .internship-image,
+    .internship-image-placeholder {
+        width: 100%;
+        height: 180px;
+    }
+    .news-title {
+        font-size: 18px;
+    }
+    .internship-title {
+        font-size: 20px;
+    }
+    .internship-meta {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .events-grid {
+        grid-template-columns: 1fr;
+    }
+}

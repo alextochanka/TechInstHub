@@ -368,3 +368,102 @@ body {
         flex-direction: column;
     }
 }
+
+/* -------------------- Анимации -------------------- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* -------------------- Состояние загрузки -------------------- */
+body.loading {
+    cursor: progress;
+}
+
+body.loading button {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* -------------------- Индикатор загрузки -------------------- */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* -------------------- Плавное появление контента -------------------- */
+body.loaded .content {
+    animation: fadeInUp 0.4s ease;
+}
+
+/* -------------------- Дополнительные стили для админ-панели -------------------- */
+.news-type-badge-xs {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.news-type-badge-xs.news {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.news-type-badge-xs.internship {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.news-type-badge-xs.event {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Анимации для карточек */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+/* Стили для пустого состояния */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8fafc;
+    border-radius: 32px;
+}
+
+.empty-state img {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
