@@ -1,24 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Управление новостями{% endblock %}
-{% block hero_title %}Новости{% endblock %}
+{% block title %}Управление публикациями{% endblock %}
+{% block hero_title %}Управление публикациями{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-32 max-w-lg mx-auto">
     <div class="ui-hstack gap-16">
-        <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m">+ Добавить новость</a>
+        <a href="{{ url_for('admin_add_news') }}" class="ui-button primary m">+ Добавить публикацию</a>
     </div>
-    <div class="ui-vstack gap-16">
-        <h3 class="ui-heading s">Существующие новости</h3>
+    
+    <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">📰 Все</button>
+        <button class="filter-tab" data-filter="news">📢 Новости</button>
+        <button class="filter-tab" data-filter="internship">💼 Стажировки</button>
+        <button class="filter-tab" data-filter="event">🎉 Мероприятия</button>
+    </div>
+    
+    <div class="ui-vstack gap-16" id="newsList">
         {% for item in news %}
-        <div class="topic-item">
+        <div class="topic-item" data-type="{{ item.type if item.type else 'news' }}">
             <div>
-                <div class="ui-text semibold">{{ item.title }}</div>
-                <div class="ui-text xs gray mt-1">{{ item.content[:80] }}{% if item.content|length > 80 %}...{% endif %}</div>
+                <div class="ui-text semibold">
+                    {% set item_type = item.type if item.type else 'news' %}
+                    {% if item_type == 'news' %}📰
+                    {% elif item_type == 'internship' %}💼
+                    {% else %}🎉{% endif %}
+                    {{ item.title }}
+                </div>
+                <div class="ui-text xs gray mt-1">
+                    Тип: 
+                    <span class="news-type-badge-xs {{ item_type }}">
+                        {% if item_type == 'news' %}Новость
+                        {% elif item_type == 'internship' %}Стажировка
+                        {% else %}Мероприятие{% endif %}
+                    </span>
+                </div>
+                <div class="ui-text xs gray">{{ item.content[:100] }}{% if item.content|length > 100 %}...{% endif %}</div>
                 <div class="ui-text xs gray">📅 {{ item.published_at.strftime('%d.%m.%Y') if item.published_at else '' }}</div>
             </div>
-            <a href="{{ url_for('admin_delete_news', news_id=item.id) }}" class="ui-button error s" data-confirm="Удалить новость «{{ item.title }}»?">Удалить</a>
+            <a href="{{ url_for('admin_delete_news', news_id=item.id) }}" class="ui-button error s" data-confirm="Удалить публикацию «{{ item.title }}»?">Удалить</a>
         </div>
         {% else %}
-        <div class="ui-text gray text-center">Новостей пока нет</div>
+        <div class="ui-text gray text-center">Публикаций пока нет</div>
         {% endfor %}
     </div>
 </div>
