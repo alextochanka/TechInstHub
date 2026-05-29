@@ -373,7 +373,7 @@ function initProjectGallery() {
     
     if (!modal || !modalImg) return;
     
-    document.querySelectorAll('.project-detail-image-thumb').forEach(img => {
+    document.querySelectorAll('.project-detail-image-thumb, .project-detail-image').forEach(img => {
         img.addEventListener('click', () => {
             modal.style.display = 'block';
             modalImg.src = img.src;
@@ -395,13 +395,10 @@ function initProjectGallery() {
 
 // ---------- Инициализация карточек на главной странице ----------
 function initHomeCards() {
-    // Обработка кликов по карточкам услуг и рекомендаций
     document.querySelectorAll('.service-card, .rec-card').forEach(card => {
-        // Убираем старые обработчики, чтобы не было дублирования
         card.removeEventListener('click', card._clickHandler);
         
         const clickHandler = function(e) {
-            // Если клик был по кнопке внутри карточки, не триггерим карточку
             if (e.target.classList && e.target.classList.contains('rec-btn')) {
                 return;
             }
@@ -415,7 +412,6 @@ function initHomeCards() {
         card.addEventListener('click', clickHandler);
     });
 
-    // Обработка кликов по кнопкам "Подробнее" и "Читать"
     document.querySelectorAll('.rec-btn').forEach(btn => {
         btn.removeEventListener('click', btn._clickHandler);
         
@@ -431,7 +427,6 @@ function initHomeCards() {
         btn.addEventListener('click', clickHandler);
     });
 
-    // Обработка кликов по ссылкам "смотреть все"
     document.querySelectorAll('.btn-secondary, .btn-view-all a').forEach(link => {
         link.removeEventListener('click', link._clickHandler);
         
@@ -448,8 +443,326 @@ function initHomeCards() {
     });
 }
 
+// ---------- Защита от повторной отправки формы ----------
+function initFormProtection() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        if (form.id === 'searchForm' || form.classList.contains('no-protection')) {
+            return;
+        }
+        
+        form.addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn && !submitBtn.hasAttribute('data-submitted')) {
+                submitBtn.setAttribute('data-submitted', 'true');
+                submitBtn.disabled = true;
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.removeAttribute('data-submitted');
+                }, 5000);
+            }
+        });
+    });
+}
+
+// ---------- Анимация появления карточек ----------
+function initCardAnimations() {
+    const cards = document.querySelectorAll('.news-card, .event-card, .project-card, .rec-card, .service-card');
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '0';
+                entry.target.style.transform = 'translateY(20px)';
+                entry.target.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                
+                setTimeout(() => {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }, 50);
+                
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    cards.forEach(card => {
+        card.style.opacity = '0';
+        observer.observe(card);
+    });
+}
+
+// ---------- Обновление активного фильтра в новостях ----------
+function initNewsFilter() {
+    const filterLinks = document.querySelectorAll('.filter-tab, .catalog-filters a');
+    filterLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            filterLinks.forEach(l => l.classList.remove('active', 'primary'));
+            this.classList.add('active', 'primary');
+            
+            const contentArea = document.querySelector('.ui-vstack.gap-24');
+            if (contentArea) {
+                contentArea.style.opacity = '0.5';
+                setTimeout(() => {
+                    contentArea.style.opacity = '1';
+                }, 300);
+            }
+        });
+    });
+}
+
+// ---------- Обработка кликов по карточкам новостей ----------
+function initNewsCardClick() {
+    document.querySelectorAll('.news-card, .event-card').forEach(card => {
+        const link = card.querySelector('.ui-link');
+        if (link) {
+            card.addEventListener('click', (e) => {
+                if (!e.target.closest('.ui-link') && !e.target.closest('button')) {
+                    window.location.href = link.href;
+                }
+            });
+        }
+    });
+}
+
+// ---------- Фильтрация публикаций в админ-панели ----------
+function initAdminNewsFilter() {
+    const filterBtns = document.querySelectorAll('.filter-tab');
+    const newsItems = document.querySelectorAll('.topic-item[data-type]');
+    
+    if (!filterBtns.length || !newsItems.length) return;
+    
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.dataset.filter;
+            
+            newsItems.forEach(item => {
+                if (filter === 'all' || item.dataset.type === filter) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+}
+
+// ---------- Уведомление об успешной отправке ----------
+function showNotification(message, type = 'success') {
+    const existingNotification = document.querySelector('.floating-notification');
+    if (existingNotification) existingNotification.remove();
+    
+    const notification = document.createElement('div');
+    notification.className = `floating-notification ${type}`;
+    notification.innerHTML = `
+        <span>${type === 'success' ? '✅' : '❌'}</span>
+        <span>${message}</span>
+    `;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10B981' : '#DC2626'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// ---------- Предотвращение возврата на страницы входа и регистрации ----------
+function initRegistrationProtection() {
+    const isLoginPage = window.location.pathname.includes('/login');
+    const isRegisterPage = window.location.pathname.includes('/register');
+    
+    if (isLoginPage || isRegisterPage) {
+        const hasLogoutLink = document.querySelector('.nav-links a[href*="logout"]') !== null;
+        const hasUserMenu = document.querySelector('.user-menu') !== null;
+        
+        if (hasLogoutLink || hasUserMenu) {
+            window.location.href = '/';
+            return;
+        }
+        
+        if (window.performance && window.performance.navigation.type === 2) {
+            window.location.href = '/';
+        }
+        
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                window.location.href = '/';
+            }
+        });
+        
+        history.pushState(null, null, location.href);
+        window.addEventListener('popstate', function() {
+            history.pushState(null, null, location.href);
+            window.location.href = '/';
+        });
+    }
+}
+
+// ---------- Проверка авторизации на страницах входа ----------
+function initAuthCheck() {
+    const authPages = ['/login', '/register'];
+    const isAuthPage = authPages.some(path => window.location.pathname.includes(path));
+    
+    if (isAuthPage) {
+        fetch('/api/v1/profile', {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => {
+            if (response.status === 200) {
+                window.location.href = '/';
+            }
+        })
+        .catch(() => {});
+    }
+}
+
+// ---------- Очистка истории после успешного входа ----------
+function initClearHistoryOnLogin() {
+    const successFlash = document.querySelector('.flash-success, .ui-text.success');
+    if (successFlash && (successFlash.textContent.includes('Добро пожаловать') || 
+        successFlash.textContent.includes('Регистрация успешна'))) {
+        history.replaceState(null, null, window.location.href);
+        
+        window.addEventListener('popstate', function() {
+            history.pushState(null, null, window.location.href);
+            window.location.href = '/';
+        });
+    }
+}
+
+// ---------- Плавная прокрутка для якорных ссылок ----------
+function initSmoothScroll() {
+    document.querySelectorAll('a[href^="#"]:not([href="#"])').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            const targetId = this.getAttribute('href');
+            if (targetId === '#') return;
+            
+            const target = document.querySelector(targetId);
+            if (target) {
+                e.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+}
+
+// ---------- Обработка ошибок форм ----------
+function initFormErrorHandling() {
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function() {
+            const requiredFields = this.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('error-field');
+                    field.addEventListener('input', function() {
+                        this.classList.remove('error-field');
+                    }, { once: true });
+                }
+            });
+        });
+    });
+}
+
+// ---------- Обработка добавления новости (тип публикации) ----------
+function initNewsTypeSelector() {
+    const newsType = document.getElementById('newsType');
+    const eventFields = document.getElementById('eventFields');
+    const internshipFields = document.getElementById('internshipFields');
+    
+    if (!newsType) return;
+    
+    function toggleFields() {
+        if (eventFields) eventFields.style.display = 'none';
+        if (internshipFields) internshipFields.style.display = 'none';
+        
+        if (newsType.value === 'event' && eventFields) {
+            eventFields.style.display = 'block';
+        } else if (newsType.value === 'internship' && internshipFields) {
+            internshipFields.style.display = 'block';
+        }
+    }
+    
+    newsType.addEventListener('change', toggleFields);
+    toggleFields();
+}
+
+// Добавляем CSS анимации для уведомлений
+const notificationStyles = document.createElement('style');
+notificationStyles.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .error-field {
+        border-color: #DC2626 !important;
+        background-color: #fef2f2 !important;
+    }
+    body.loaded .content {
+        animation: fadeInUp 0.4s ease;
+    }
+`;
+document.head.appendChild(notificationStyles);
+
 // ---------- Главная инициализация ----------
 document.addEventListener('DOMContentLoaded', () => {
+    // Проверка авторизации для страниц входа/регистрации
+    initAuthCheck();
+    
+    // Защита от возврата
+    initRegistrationProtection();
+    
+    // Очистка истории после успешного входа
+    initClearHistoryOnLogin();
+    
     // Валидация пароля
     initPasswordValidation('registerForm', 'password');
     initPasswordValidation('addUserForm', 'passwordAdmin');
@@ -478,7 +791,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initAvatarPreview();
     initChatAttachments();
     initProjectGallery();
-    initRatingStars(); // Инициализация звездочек рейтинга
+    initRatingStars();
+    
+    // Новые функции
+    initFormProtection();
+    initCardAnimations();
+    initNewsFilter();
+    initNewsCardClick();
+    initSmoothScroll();
+    initFormErrorHandling();
+    initAdminNewsFilter();
+    initNewsTypeSelector();
     
     // Превью изображений для проектов и новостей
     initImagePreviews('projectImages', 'imagesPreview');
@@ -500,4 +823,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Добавляем класс loaded для устранения FOUC
+    document.body.classList.add('loaded');
+    
+    // Убираем индикатор загрузки
+    setTimeout(() => {
+        document.body.classList.remove('loading');
+    }, 100);
+    
+    // Обработка flash-сообщений как уведомлений (только JS, без отображения черных блоков)
+    const flashMessages = document.querySelectorAll('.flash-message');
+    flashMessages.forEach(msg => {
+        const message = msg.getAttribute('data-flash') || msg.textContent;
+        if (message && message.trim()) {
+            const isError = msg.classList.contains('flash-error') || msg.classList.contains('error');
+            showNotification(message.trim(), isError ? 'error' : 'success');
+            msg.remove();
+        }
+    });
 });
+
+// Экспорт функций для использования в других скриптах
+window.TechInstHub = {
+    showNotification,
+    validatePasswordStrength
+};
