@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Мероприятия — TechInstHub{% endblock %}
+{% block hero_title %}Мероприятия{% endblock %}
+{% block hero_description %}Вебинары, хакатоны и конференции{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    <div class="catalog-filters">
+        <div class="filter-group">
+            <label class="ui-text semibold">Фильтр по типу</label>
+            <div class="filter-tabs">
+                <a href="{{ url_for('news_by_type', type_filter='all') }}" class="filter-tab">📰 Все</a>
+                <a href="{{ url_for('news_by_type', type_filter='news') }}" class="filter-tab">📢 Новости</a>
+                <a href="{{ url_for('internships_list') }}" class="filter-tab">💼 Стажировки</a>
+                <a href="{{ url_for('events_list') }}" class="filter-tab active">🎉 Мероприятия</a>
+            </div>
+        </div>
+    </div>
+    
+    {% if events %}
+        <div class="events-grid">
+            {% for event in events %}
+            <div class="event-card-item">
+                {% if event.image_url %}
+                <div class="event-card-image" style="background-image: url('{{ url_for('static', filename=event.image_url.split(',')[0]) }}')"></div>
+                {% else %}
+                <div class="event-card-image-placeholder">
+                    <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="48" height="48" alt="Мероприятие">
+                </div>
+                {% endif %}
+                <div class="event-card-content">
+                    <span class="event-badge">🎉 МЕРОПРИЯТИЕ</span>
+                    <h3 class="event-card-title">{{ event.title }}</h3>
+                    <div class="event-details">
+                        <div class="event-detail">
+                            📅 {{ event.published_at.strftime('%d.%m.%Y') if event.published_at else '' }}
+                        </div>
+                    </div>
+                    <p class="event-card-description">{{ event.content[:120] }}{% if event.content|length > 120 %}...{% endif %}</p>
+                    <div class="event-footer">
+                        <span class="event-info">🔗 Подробности по ссылке ниже</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="80" height="80" alt="Нет мероприятий">
+            <p class="ui-text gray">Пока нет запланированных мероприятий</p>
+            <p class="ui-text xs gray">Следите за анонсами — новые события появятся скоро!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

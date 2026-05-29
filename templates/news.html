@@ -1,21 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Новости{% endblock %}
+{% block title %}Новости — TechInstHub{% endblock %}
 {% block hero_title %}Новости платформы{% endblock %}
+{% block hero_description %}Следите за актуальными новостями, стажировками и мероприятиями{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-24">
-    {% for item in news %}
-    <div class="ui-hstack gap-24" style="background:#f8fafc; border-radius:32px; padding:20px;">
-        <div style="font-size:48px;">
-            <img src="{{ url_for('static', filename='icons/news.svg') }}" width="48" height="48" alt="Новость">
+    <div class="catalog-filters">
+        <div class="filter-group">
+            <label class="ui-text semibold">Фильтр по типу</label>
+            <div class="filter-tabs">
+                <a href="{{ url_for('news_by_type', type_filter='all') }}" class="filter-tab {% if active_filter == 'all' %}active{% endif %}">📰 Все</a>
+                <a href="{{ url_for('news_by_type', type_filter='news') }}" class="filter-tab {% if active_filter == 'news' %}active{% endif %}">📢 Новости</a>
+                <a href="{{ url_for('internships_list') }}" class="filter-tab {% if active_filter == 'internship' %}active{% endif %}">💼 Стажировки</a>
+                <a href="{{ url_for('events_list') }}" class="filter-tab {% if active_filter == 'event' %}active{% endif %}">🎉 Мероприятия</a>
             </div>
-        <div>
-            <div class="ui-heading s primary">{{ item.title }}</div>
-            <p class="ui-text gray">{{ item.content }}</p>
-            <span class="ui-text xs gray">{{ item.published_at.strftime('%d.%m.%Y') if item.published_at else '' }}</span>
+        </div>
+    </div>
+    
+    {% for item in news %}
+    <div class="news-card">
+        {% if item.image_url %}
+        <img src="{{ url_for('static', filename=item.image_url.split(',')[0]) }}" class="news-image" alt="{{ item.title }}">
+        {% else %}
+        <div class="news-image-placeholder">
+            {% if item.type == 'internship' %}
+            <img src="{{ url_for('static', filename='icons/briefcase.svg') }}" width="48" height="48" alt="Стажировка">
+            {% elif item.type == 'event' %}
+            <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="48" height="48" alt="Мероприятие">
+            {% else %}
+            <img src="{{ url_for('static', filename='icons/megaphone.svg') }}" width="48" height="48" alt="Новость">
+            {% endif %}
+        </div>
+        {% endif %}
+        <div class="news-content">
+            <div class="news-header">
+                <span class="news-type-badge {{ item.type if item.type else 'news' }}">
+                    {% if item.type == 'internship' %}💼 Стажировка
+                    {% elif item.type == 'event' %}🎉 Мероприятие
+                    {% else %}📰 Новость{% endif %}
+                </span>
+                <span class="news-date">{{ item.published_at.strftime('%d.%m.%Y') if item.published_at else '' }}</span>
+            </div>
+            <h3 class="news-title">{{ item.title }}</h3>
+            <p class="news-description">{{ item.content }}</p>
+            <a href="#" class="ui-link primary">Читать далее →</a>
         </div>
     </div>
     {% else %}
-    <div class="ui-text gray center">Новостей пока нет</div>
+    <div class="empty-state">
+        <img src="{{ url_for('static', filename='icons/news.svg') }}" width="80" height="80" alt="Нет публикаций">
+        <p class="ui-text gray">Публикаций пока нет</p>
+        <p class="ui-text xs gray">Следите за обновлениями!</p>
+    </div>
     {% endfor %}
 </div>
 {% endblock %}

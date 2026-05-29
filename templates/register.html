@@ -1,58 +1,59 @@
 {% extends "base.html" %}
-{% block title %}Регистрация студента{% endblock %}
+{% block title %}Регистрация — TechInstHub{% endblock %}
 {% block hero_title %}Регистрация студента{% endblock %}
-
+{% block hero_description %}Присоединяйтесь к сообществу TechInstHub{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-32 align-center" style="max-width: 600px; margin: 0 auto;">
-    <form method="post" class="ui-vstack gap-20" style="width: 100%;" id="registerForm">
-        <div class="ui-vstack gap-8">
-            <label class="ui-text semibold">Имя</label>
-            <input type="text" name="first_name" required class="ui-input">
-        </div>
-        <div class="ui-vstack gap-8">
-            <label class="ui-text semibold">Фамилия</label>
-            <input type="text" name="last_name" required class="ui-input">
+    <form method="post" class="ui-vstack gap-20 w-full" id="registerForm">
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div class="ui-vstack gap-8" style="flex: 1;">
+                <label class="ui-text semibold">Имя</label>
+                <input type="text" name="first_name" required class="ui-input w-full" placeholder="Иван">
+            </div>
+            <div class="ui-vstack gap-8" style="flex: 1;">
+                <label class="ui-text semibold">Фамилия</label>
+                <input type="text" name="last_name" required class="ui-input w-full" placeholder="Иванов">
+            </div>
         </div>
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Email</label>
-            <input type="email" name="email" required class="ui-input">
+            <input type="email" name="email" required class="ui-input w-full" placeholder="ivan@example.com">
         </div>
-        <div class="ui-vstack gap-8">
-            <label class="ui-text semibold">Факультет</label>
-            <input type="text" name="faculty" class="ui-input">
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div class="ui-vstack gap-8" style="flex: 1;">
+                <label class="ui-text semibold">Факультет</label>
+                <input type="text" name="faculty" class="ui-input w-full" placeholder="Информационных технологий">
+            </div>
+            <div class="ui-vstack gap-8" style="flex: 1;">
+                <label class="ui-text semibold">Группа</label>
+                <input type="text" name="group_number" class="ui-input w-full" placeholder="ИВТ-01-23">
+            </div>
         </div>
-        <div class="ui-vstack gap-8">
-            <label class="ui-text semibold">Группа</label>
-            <input type="text" name="group_number" class="ui-input">
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div class="ui-vstack gap-8" style="flex: 1;">
+                <label class="ui-text semibold">Курс</label>
+                <input type="number" name="course" min="1" max="6" required class="ui-input w-full" placeholder="3">
+            </div>
         </div>
-        <div class="ui-vstack gap-8">
-            <label class="ui-text semibold">Курс</label>
-            <input type="number" name="course" min="1" max="6" required class="ui-input">
-        </div>
-
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Пароль</label>
-            <div style="position: relative;">
-                <input type="password" name="password" id="password" required class="ui-input" style="padding-right:40px;">
+            <div class="relative">
+                <input type="password" name="password" id="password" required class="ui-input w-full" placeholder="Придумайте пароль">
                 <button type="button" id="togglePassword" class="password-toggle">
-                    <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="24" height="24" id="eyeIcon" alt="Показать пароль">
+                    <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="22" height="22" id="eyeIcon" alt="Показать пароль">
                 </button>
             </div>
             <div id="passwordHints" class="ui-vstack gap-4" style="margin-top: 8px;">
                 <div id="hint-length" class="password-hint"><span id="length-icon">❌</span> 8–14 символов</div>
                 <div id="hint-upper" class="password-hint"><span id="upper-icon">❌</span> Заглавная буква (A–Z)</div>
                 <div id="hint-lower" class="password-hint"><span id="lower-icon">❌</span> Строчная буква (a–z)</div>
-                <div id="hint-special" class="password-hint"><span id="special-icon">❌</span> Специальный символ (!@#$%^&* и др.)</div>
+                <div id="hint-special" class="password-hint"><span id="special-icon">❌</span> Специальный символ (!@#$%^&*)</div>
             </div>
         </div>
-
-        <button type="submit" class="ui-button primary m">Зарегистрироваться</button>
+        <button type="submit" class="ui-button primary m w-full">Зарегистрироваться</button>
     </form>
     <div class="ui-text center">
         Уже есть аккаунт? <a href="{{ url_for('login') }}" class="ui-link primary">Войти</a>
     </div>
 </div>
-<script>
-    window.STATIC_URL = "{{ url_for('static', filename='icons/') }}";
-</script>
 {% endblock %}

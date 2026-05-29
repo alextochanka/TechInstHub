@@ -1,24 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Вход — TechInstHub{% endblock %}
 {% block hero_title %}Вход в аккаунт{% endblock %}
+{% block hero_description %}Войдите, чтобы продолжить обучение{% endblock %}
+{% block head %}
+{{ super() }}
+<script>
+    if (window.performance && window.performance.navigation.type === 2) {
+        window.location.href = "{{ url_for('index') }}";
+    }
+</script>
+{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32 align-center max-w-md mx-auto">
-    <form method="post" class="ui-vstack gap-20 w-full">
+<div class="ui-vstack gap-32 align-center" style="max-width: 500px; margin: 0 auto;">
+    <form method="post" class="ui-vstack gap-24 w-full" id="loginForm">
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Email</label>
-            <input type="email" name="email" required class="ui-input p-3 rounded-xl border-gray">
+            <input type="email" name="email" required class="ui-input w-full" placeholder="example@mail.com" autocomplete="email">
         </div>
         <div class="ui-vstack gap-8">
             <label class="ui-text semibold">Пароль</label>
             <div class="relative">
-                <input type="password" name="password" id="password" required class="ui-input p-3 rounded-xl border-gray w-full pr-10">
+                <input type="password" name="password" id="password" required class="ui-input w-full" placeholder="••••••••" autocomplete="current-password">
                 <button type="button" id="togglePassword" class="password-toggle">
-                    <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="24" height="24" id="eyeIcon" alt="Показать пароль">
+                    <img src="{{ url_for('static', filename='icons/Eye-off.svg') }}" width="22" height="22" id="eyeIcon" alt="Показать пароль">
                 </button>
             </div>
         </div>
-        <button type="submit" class="ui-button primary m">Войти</button>
+        <button type="submit" class="ui-button primary m w-full">Войти</button>
     </form>
-    <div class="ui-text center">Нет аккаунта? <a href="{{ url_for('register') }}" class="ui-link primary">Зарегистрироваться</a></div>
+    <div class="ui-text center">
+        Нет аккаунта? <a href="{{ url_for('register') }}" class="ui-link primary">Зарегистрироваться</a>
+    </div>
 </div>
 {% endblock %}

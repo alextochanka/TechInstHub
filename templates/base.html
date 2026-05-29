@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TechInstHub - платформа для поиска проектов, стажировок и мероприятий в IT сфере">
     <title>{% block title %}TechInstHub{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='ui.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/logo.svg') }}">
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+    {% block head %}{% endblock %}
 </head>
-<body>
+<body class="loading">
     <div class="nav-links">
         <a href="javascript:history.back()" class="nav-arrow" title="Назад">
             <img src="{{ url_for('static', filename='icons/arrow-left.svg') }}" width="28" height="28" alt="Назад">
@@ -16,17 +19,19 @@
         <a href="javascript:history.forward()" class="nav-arrow" title="Вперёд">
             <img src="{{ url_for('static', filename='icons/arrow-right.svg') }}" width="28" height="28" alt="Вперёд">
         </a>
-        <a href="{{ url_for('chats_list') }}" class="logo-link">
-            <img src="{{ url_for('static', filename='icons/logo.svg') }}" width="28" height="28" alt="Чаты">
+        <a href="{{ url_for('index') }}" class="logo-link">
+            <img src="{{ url_for('static', filename='icons/logo.svg') }}" width="28" height="28" alt="TechInstHub">
         </a>
         <a href="{{ url_for('index') }}">Главная</a>
         <a href="{{ url_for('catalog') }}">Проекты</a>
-        <a href="{{ url_for('news_list') }}">Новости</a>
+        <a href="{{ url_for('news_by_type', type_filter='all') }}">Новости</a>
+        <a href="{{ url_for('internships_list') }}">Стажировки</a>
+        <a href="{{ url_for('events_list') }}">Мероприятия</a>
         {% if session.user_id %}
             <a href="{{ url_for('profile') }}">Профиль</a>
             <a href="{{ url_for('chats_list') }}">Сообщения</a>
             {% if session.role == 'admin' %}
-                <a href="{{ url_for('admin_dashboard') }}">Администратор</a>
+                <a href="{{ url_for('admin_dashboard') }}">Админ</a>
             {% endif %}
             <a href="{{ url_for('logout') }}">Выйти</a>
         {% else %}
@@ -39,13 +44,14 @@
             <div class="hero-content">
                 <div class="hero-left">
                     <h1 class="hero-title">{% block hero_title %}TechInstHub{% endblock %}</h1>
+                    <p class="hero-description">{% block hero_description %}Образовательная платформа для студентов и преподавателей{% endblock %}</p>
                 </div>
             </div>
         </div>
         <div class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
-                    <div class="ui-text s {{ 'error' if category == 'error' else 'success' if category == 'success' else 'primary' }} mb-6">
+                    <div class="flash-message flash-{{ category }}" data-flash="{{ message }}" style="display: none;">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -59,11 +65,11 @@
                 <div class="footer-links">
                     <a href="{{ url_for('index') }}">Главная</a>
                     <a href="{{ url_for('catalog') }}">Проекты</a>
-                    <a href="{{ url_for('news_list') }}">Новости</a>
+                    <a href="{{ url_for('news_by_type', type_filter='all') }}">Новости</a>
                 </div>
                 <div class="footer-social">
-                    <a href="#"><img src="{{ url_for('static', filename='icons/max.svg') }}" width="24" height="24" alt="MAX"></a>
-                    <a href="#"><img src="{{ url_for('static', filename='icons/vk.svg') }}" width="24" height="24" alt="Вконтакте"></a>
+                    <a href="#" target="_blank"><img src="{{ url_for('static', filename='icons/max.svg') }}" width="24" height="24" alt="MAX"></a>
+                    <a href="#" target="_blank"><img src="{{ url_for('static', filename='icons/vk.svg') }}" width="24" height="24" alt="Вконтакте"></a>
                 </div>
                 <div class="footer-email">
                     <img src="{{ url_for('static', filename='icons/email.svg') }}" width="20" height="20" alt="Email">

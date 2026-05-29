@@ -1,35 +1,36 @@
 {% extends "base.html" %}
-{% block title %}TechInstHub — платформа для поиска проектов{% endblock %}
+{% block title %}TechInstHub — платформа для поиска проектов, стажировок и мероприятий{% endblock %}
 {% block hero_title %}TECHINSTHUB{% endblock %}
+{% block hero_description %}Образовательная платформа для студентов и преподавателей{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-32">
     <!-- УСЛУГИ -->
     <div class="services">
-        <h2 class="section-title">УСЛУГИ</h2>
+        <h2 class="section-title">Возможности платформы</h2>
         <div class="services-grid">
             <div class="service-card" data-href="{{ url_for('catalog') }}">
-                <div class="service-title">Проекты</div>
+                <div class="service-title">📁 Проекты</div>
                 <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
-            <div class="service-card" data-href="{{ url_for('catalog') }}">
-                <div class="service-title">Стажировки</div>
+            <div class="service-card" data-href="{{ url_for('internships_list') }}">
+                <div class="service-title">💼 Стажировки</div>
                 <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
-            <div class="service-card" data-href="{{ url_for('catalog') }}">
-                <div class="service-title">Мероприятия</div>
+            <div class="service-card" data-href="{{ url_for('events_list') }}">
+                <div class="service-title">🎉 Мероприятия</div>
                 <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
             <div class="service-card" data-href="{{ url_for('chats_list') }}">
-                <div class="service-title">Сообщество</div>
+                <div class="service-title">💬 Сообщество</div>
                 <div><img src="{{ url_for('static', filename='icons/circle.svg') }}" width="36" height="36" alt="icon"></div>
             </div>
         </div>
     </div>
 
-    <!-- РЕКОМЕНДАЦИИ -->
+    <!-- РЕКОМЕНДАЦИИ (ПРОЕКТЫ) -->
     <div class="recommendations">
         <div class="recommendations-header">
-            <h2 class="recommendations-title">РЕКОМЕНДАЦИИ</h2>
+            <h2 class="recommendations-title">РЕКОМЕНДУЕМЫЕ ПРОЕКТЫ</h2>
         </div>
         <div class="recommendations-grid">
             {% for project in projects[:3] %}
@@ -38,55 +39,90 @@
                 <img src="{{ url_for('static', filename=project.image_url) }}" class="rec-card-image" alt="{{ project.title }}">
                 {% else %}
                 <div class="rec-card-image-placeholder">
-                    <img src="{{ url_for('static', filename='icons/image.svg') }}" width="48" height="48" alt="Нет фото">
+                    <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="48" height="48" alt="Нет фото">
                 </div>
                 {% endif %}
                 <div class="rec-card-header">
-                    <span class="rec-date">{{ project.deadline.strftime('%d.%m.%y') if project.deadline else '—' }}</span>
+                    <span class="rec-date">📅 {{ project.deadline.strftime('%d.%m.%y') if project.deadline else '—' }}</span>
                     <span class="rec-difficulty">{{ project.difficulty or 'легкий' }}</span>
                 </div>
-                <h3 class="rec-title">{{ project.title[:30] }}{% if project.title|length > 30 %}...{% endif %}</h3>
-                <div class="rec-teacher">преподаватель: {{ project.teacher_name or project.name }} {{ project.teacher_surname or project.surname }}</div>
-                <button class="rec-btn" data-href="{{ url_for('project_detail', project_id=project.id) }}">Подробнее</button>
+                <h3 class="rec-title">{{ project.title[:35] }}{% if project.title|length > 35 %}...{% endif %}</h3>
+                <div class="rec-teacher">👨‍🏫 {{ project.name }} {{ project.surname }} | {{ project.accepted_count|default(0) }}/{{ project.max_students }}</div>
+                <button class="rec-btn" data-href="{{ url_for('project_detail', project_id=project.id) }}">Подробнее →</button>
             </div>
             {% else %}
-            <div class="ui-text gray center">Нет проектов</div>
+            <div class="ui-text gray center">Нет активных проектов</div>
             {% endfor %}
         </div>
         <div class="btn-view-all">
-            <a class="btn-secondary" data-href="{{ url_for('catalog') }}">смотреть все</a>
+            <a class="btn-secondary" data-href="{{ url_for('catalog') }}">смотреть все проекты →</a>
         </div>
     </div>
 
-    <!-- НОВОСТИ -->
+    <!-- НОВОСТИ (ВСЕ ТИПЫ: новости, стажировки, мероприятия) -->
     <div class="recommendations">
         <div class="recommendations-header">
-            <h2 class="recommendations-title">НОВОСТИ</h2>
+            <h2 class="recommendations-title">НОВОСТИ И СОБЫТИЯ</h2>
         </div>
         <div class="recommendations-grid">
-            {% for item in news[:3] %}
-            <div class="rec-card" data-href="{{ url_for('news_list') }}">
+            {% for item in all_news[:3] %}
+            <div class="rec-card" data-href="
+                {% if item.type == 'internship' %}
+                    {{ url_for('internships_list') }}
+                {% elif item.type == 'event' %}
+                    {{ url_for('events_list') }}
+                {% else %}
+                    {{ url_for('news_by_type', type_filter='all') }}
+                {% endif %}
+            ">
                 {% if item.image_url %}
-                <img src="{{ url_for('static', filename=item.image_url) }}" class="rec-card-image" alt="{{ item.title }}">
+                <img src="{{ url_for('static', filename=item.image_url.split(',')[0]) }}" class="rec-card-image" alt="{{ item.title }}">
                 {% else %}
                 <div class="rec-card-image-placeholder">
+                    {% if item.type == 'internship' %}
+                    <img src="{{ url_for('static', filename='icons/briefcase.svg') }}" width="48" height="48" alt="Стажировка">
+                    {% elif item.type == 'event' %}
+                    <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="48" height="48" alt="Мероприятие">
+                    {% else %}
                     <img src="{{ url_for('static', filename='icons/news.svg') }}" width="48" height="48" alt="Новость">
+                    {% endif %}
                 </div>
                 {% endif %}
                 <div class="rec-card-header">
-                    <span class="rec-date">{{ item.published_at.strftime('%d.%m.%y') if item.published_at else '' }}</span>
-                    <span class="rec-difficulty">новость</span>
+                    <span class="rec-date">
+                        {% if item.type == 'internship' %}💼
+                        {% elif item.type == 'event' %}🎉
+                        {% else %}📰{% endif %}
+                        {{ item.published_at.strftime('%d.%m.%y') if item.published_at else '' }}
+                    </span>
+                    <span class="rec-difficulty">
+                        {% if item.type == 'internship' %}стажировка
+                        {% elif item.type == 'event' %}мероприятие
+                        {% else %}новость{% endif %}
+                    </span>
                 </div>
                 <h3 class="rec-title">{{ item.title[:40] }}{% if item.title|length > 40 %}...{% endif %}</h3>
                 <div class="rec-description">{{ item.content[:80] }}{% if item.content|length > 80 %}...{% endif %}</div>
-                <button class="rec-btn" data-href="{{ url_for('news_list') }}">Читать</button>
+                <button class="rec-btn" data-href="
+                    {% if item.type == 'internship' %}
+                        {{ url_for('internships_list') }}
+                    {% elif item.type == 'event' %}
+                        {{ url_for('events_list') }}
+                    {% else %}
+                        {{ url_for('news_by_type', type_filter='all') }}
+                    {% endif %}
+                ">
+                    {% if item.type == 'internship' %}Подробнее о стажировке →
+                    {% elif item.type == 'event' %}Подробнее о мероприятии →
+                    {% else %}Читать новость →{% endif %}
+                </button>
             </div>
             {% else %}
-            <div class="ui-text gray center">Нет новостей</div>
+            <div class="ui-text gray center">Нет публикаций</div>
             {% endfor %}
         </div>
         <div class="btn-view-all">
-            <a class="btn-secondary" data-href="{{ url_for('news_list') }}">смотреть все</a>
+            <a class="btn-secondary" data-href="{{ url_for('news_by_type', type_filter='all') }}">все новости и события →</a>
         </div>
     </div>
 </div>

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Стажировки — TechInstHub{% endblock %}
+{% block hero_title %}Стажировки{% endblock %}
+{% block hero_description %}Актуальные стажировки для студентов{% endblock %}
+{% block content %}
+<div class="ui-vstack gap-24">
+    <div class="catalog-filters">
+        <div class="filter-group">
+            <label class="ui-text semibold">Фильтр по типу</label>
+            <div class="filter-tabs">
+                <a href="{{ url_for('news_by_type', type_filter='all') }}" class="filter-tab">📰 Все</a>
+                <a href="{{ url_for('news_by_type', type_filter='news') }}" class="filter-tab">📢 Новости</a>
+                <a href="{{ url_for('internships_list') }}" class="filter-tab active">💼 Стажировки</a>
+                <a href="{{ url_for('events_list') }}" class="filter-tab">🎉 Мероприятия</a>
+            </div>
+        </div>
+    </div>
+    
+    {% if internships %}
+        {% for internship in internships %}
+        <div class="internship-card">
+            {% if internship.image_url %}
+            <img src="{{ url_for('static', filename=internship.image_url.split(',')[0]) }}" class="internship-image" alt="{{ internship.title }}">
+            {% else %}
+            <div class="internship-image-placeholder">
+                <img src="{{ url_for('static', filename='icons/briefcase.svg') }}" width="56" height="56" alt="Стажировка">
+            </div>
+            {% endif %}
+            <div class="internship-content">
+                <div class="internship-header">
+                    <span class="internship-badge">💼 Стажировка</span>
+                    <span class="internship-date">{{ internship.published_at.strftime('%d.%m.%Y') if internship.published_at else '' }}</span>
+                </div>
+                <h3 class="internship-title">{{ internship.title }}</h3>
+                <p class="internship-description">{{ internship.content }}</p>
+                <div class="internship-footer">
+                    <span class="internship-info">📧 Для участия напишите на: careers@techinsthub.com</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <img src="{{ url_for('static', filename='icons/briefcase.svg') }}" width="80" height="80" alt="Нет стажировок">
+            <p class="ui-text gray">Пока нет активных стажировок</p>
+            <p class="ui-text xs gray">Следите за обновлениями — новые стажировки появятся скоро!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
