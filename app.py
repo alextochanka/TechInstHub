@@ -51,7 +51,7 @@ def require_login():
     if request.endpoint in public_routes:
         return
     if 'user_id' not in session:
-        flash('Войдите в систему!, 'error')
+        flash('Войдите в систему!', 'error')
         return redirect(url_for('login'))
 
 
@@ -98,22 +98,6 @@ def log_action(user_id, action, details=None, ip_address=None):
         if conn:
             conn.close()
 
-
-def fix_project_dates():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("UPDATE projects SET deadline = CURRENT_DATE WHERE deadline IS NULL")
-        cur.execute("UPDATE projects SET deadline = CURRENT_DATE WHERE deadline < '1900-01-01'")
-        conn.commit()
-        print("✅ Исправлены проблемные даты в проектах")
-    except Exception as e:
-        print(f"⚠️ Ошибка при исправлении дат: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
-
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -134,47 +118,6 @@ def teacher_required(f):
         return f(*args, **kwargs)
 
     return decorated
-
-
-def ensure_max_students_column():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='projects' AND column_name='max_students'
-        """)
-        if not cur.fetchone():
-            cur.execute("ALTER TABLE projects ADD COLUMN max_students INTEGER DEFAULT 1")
-            conn.commit()
-            print("✅ Добавлена колонка max_students в таблицу projects")
-    except Exception as e:
-        print(f"⚠️ Не удалось добавить колонку max_students: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
-
-def ensure_avatar_column():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='users' AND column_name='avatar_url'
-        """)
-        if not cur.fetchone():
-            cur.execute("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)")
-            conn.commit()
-            print("✅ Добавлена колонка avatar_url в таблицу users")
-    except Exception as e:
-        print(f"⚠️ Не удалось добавить колонку avatar_url: {e}")
-    finally:
-        cur.close()
-        conn.close()
-
 
 def ensure_message_attachments():
     conn = get_db_connection()
@@ -207,38 +150,6 @@ def ensure_message_attachments():
     finally:
         cur.close()
         conn.close()
-
-
-def ensure_project_images_multiple():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='images' AND column_name='file_name'
-        """)
-        if not cur.fetchone():
-            cur.execute("ALTER TABLE images ADD COLUMN file_name VARCHAR(255)")
-            print("✅ Добавлена колонка file_name в images")
-
-        cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='images' AND column_name='file_size'
-        """)
-        if not cur.fetchone():
-            cur.execute("ALTER TABLE images ADD COLUMN file_size INTEGER")
-            print("✅ Добавлена колонка file_size в images")
-
-        conn.commit()
-    except Exception as e:
-        print(f"⚠️ Ошибка при обновлении images: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        conn.close()
-
 
 def ensure_project_chat(project_id, tutor_id, student_id=None):
     conn = get_db_connection()
@@ -307,10 +218,13 @@ def create_admin_if_not_exists():
 def index():
     conn = get_db_connection()
     cur = conn.cursor()
+
+    # Получаем проекты для рекомендаций
     cur.execute("""
         SELECT p.id, p.title, p.description, p.deadline, p.difficulty, p.max_students,
                u.first_name AS name, u.last_name AS surname, u.avatar_url,
-               (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url
+               (SELECT image_url FROM images WHERE entity_type='project' AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url,
+               (SELECT COUNT(*) FROM applications WHERE project_id=p.id AND status='accepted') AS accepted_count
         FROM projects p
         JOIN users u ON p.id_tutor = u.id
         WHERE p.status = 'открыт'
@@ -318,18 +232,113 @@ def index():
         LIMIT 3
     """)
     projects = cur.fetchall()
+
+    # Получаем ВСЕ публикации (новости, стажировки, мероприятия) для раздела новостей
     cur.execute("""
-        SELECT id, title, content, image_url, published_at
+        SELECT id, title, content, image_url, published_at, 
+               COALESCE(type, 'news') as type
         FROM news_feed
-        WHERE type = 'news'
         ORDER BY published_at DESC
         LIMIT 3
     """)
-    news = cur.fetchall()
+    all_news = cur.fetchall()
+
     cur.close()
     conn.close()
-    return render_template('index.html', projects=projects, news=news)
+    return render_template('index.html', projects=projects, all_news=all_news)
 
+# ----- Маршруты для стажировок и мероприятий -----
+@app.route('/internships')
+def internships_list():
+    """Страница со стажировками"""
+    conn = get_db_connection()  # Исправлено с get_db_connections на get_db_connection
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id, title, content, image_url, published_at, type
+            FROM news_feed
+            WHERE type = 'internship'
+            ORDER BY published_at DESC
+        """)
+        internships = cur.fetchall()
+    except Exception as e:
+        print(f"Ошибка при получении стажировок: {e}")
+        internships = []
+    finally:
+        cur.close()
+        conn.close()
+    return render_template('internships.html', internships=internships)
+
+
+@app.route('/events')
+def events_list():
+    """Страница с мероприятиями"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        # Проверяем, есть ли колонки event_date и event_location
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'news_feed' AND column_name IN ('event_date', 'event_location')
+        """)
+        existing_columns = [row['column_name'] for row in cur.fetchall()]
+
+        if 'event_date' in existing_columns and 'event_location' in existing_columns:
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at, type,
+                       event_date, event_location
+                FROM news_feed
+                WHERE type = 'event'
+                ORDER BY event_date ASC NULLS LAST
+            """)
+        else:
+            # Если колонок нет, выбираем только существующие
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at, type
+                FROM news_feed
+                WHERE type = 'event'
+                ORDER BY published_at DESC
+            """)
+        events = cur.fetchall()
+    except Exception as e:
+        print(f"Ошибка при получении мероприятий: {e}")
+        events = []
+    finally:
+        cur.close()
+        conn.close()
+    return render_template('events.html', events=events)
+
+
+@app.route('/news/<string:type_filter>')
+def news_by_type(type_filter):
+    """Фильтрация новостей по типу"""
+    if type_filter not in ['news', 'internship', 'event', 'all']:
+        type_filter = 'all'
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if type_filter == 'all':
+        cur.execute("""
+            SELECT id, title, content, image_url, published_at, type,
+                   event_date, event_location
+            FROM news_feed
+            ORDER BY published_at DESC
+        """)
+    else:
+        cur.execute("""
+            SELECT id, title, content, image_url, published_at, type,
+                   event_date, event_location
+            FROM news_feed
+            WHERE type = %s
+            ORDER BY published_at DESC
+        """, (type_filter,))
+
+    all_news = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template('news.html', news=all_news, active_filter=type_filter)
 
 @app.route('/catalog')
 def catalog():
@@ -1014,22 +1023,74 @@ def admin_delete_user(user_id):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # 1. Удаляем вложения из сообщений пользователя
+        cur.execute("""
+            DELETE FROM message_attachments 
+            WHERE message_id IN (
+                SELECT id FROM messages WHERE sender_id = %s
+            )
+        """, (user_id_str,))
+
+        # 2. Удаляем сообщения пользователя
+        cur.execute("DELETE FROM messages WHERE sender_id = %s", (user_id_str,))
+
+        # 3. Удаляем пользователя из чатов
         cur.execute("DELETE FROM chat_members WHERE user_id = %s", (user_id_str,))
+
+        # 4. Удаляем чаты, в которых не осталось участников
+        cur.execute("""
+            DELETE FROM chats 
+            WHERE id IN (
+                SELECT c.id 
+                FROM chats c
+                LEFT JOIN chat_members cm ON c.id = cm.chat_id
+                WHERE c.id IN (
+                    SELECT chat_id FROM chat_members WHERE user_id = %s
+                )
+                GROUP BY c.id
+                HAVING COUNT(cm.user_id) = 0
+            )
+        """, (user_id_str,))
+
+        # 5. Удаляем заявки пользователя
         cur.execute("DELETE FROM applications WHERE student_id = %s", (user_id_str,))
+
+        # 6. Удаляем проекты пользователя (как преподавателя)
+        cur.execute("SELECT id FROM projects WHERE id_tutor = %s", (user_id_str,))
+        projects = cur.fetchall()
+        for project in projects:
+            project_id_str = str(project['id'])
+            # Удаляем изображения проектов
+            cur.execute("DELETE FROM images WHERE entity_type='project' AND entity_id=%s", (project_id_str,))
+            # Удаляем заявки на проекты
+            cur.execute("DELETE FROM applications WHERE project_id=%s", (project_id_str,))
+        # Удаляем проекты
         cur.execute("DELETE FROM projects WHERE id_tutor = %s", (user_id_str,))
+
+        # 7. Удаляем отзывы (где пользователь автор или получатель)
         cur.execute("DELETE FROM reviews WHERE author_id = %s OR recipient_id = %s", (user_id_str, user_id_str))
+
+        # 8. Удаляем записи из дополнительных таблиц
         cur.execute("DELETE FROM students WHERE user_id = %s", (user_id_str,))
         cur.execute("DELETE FROM teachers WHERE user_id = %s", (user_id_str,))
         cur.execute("DELETE FROM admins WHERE user_id = %s", (user_id_str,))
+
+        # 9. Удаляем логи пользователя
         cur.execute("DELETE FROM logs WHERE user_id = %s", (user_id_str,))
+
+        # 10. Наконец, удаляем самого пользователя
         cur.execute("DELETE FROM users WHERE id = %s", (user_id_str,))
+
         conn.commit()
         log_action(session['user_id'], 'delete_user', f'Удалён пользователь {user_id}')
-        flash('Пользователь удалён.', 'success')
+        flash('Пользователь и все связанные данные успешно удалены.', 'success')
+
     except Exception as e:
         conn.rollback()
         flash(f'Ошибка при удалении: {e}', 'error')
         print(f"Ошибка удаления пользователя: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         cur.close()
         conn.close()
@@ -1129,11 +1190,35 @@ def admin_delete_topic(topic_id):
 def admin_news_list():
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT id, title, content, image_url, published_at FROM news_feed WHERE type='news' ORDER BY published_at DESC")
-    news = cur.fetchall()
-    cur.close()
-    conn.close()
+    try:
+        # Проверяем наличие колонки type
+        cur.execute("""
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'news_feed' AND column_name = 'type'
+        """)
+        has_type_column = cur.fetchone() is not None
+
+        if has_type_column:
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at, 
+                       COALESCE(type, 'news') as type
+                FROM news_feed 
+                ORDER BY published_at DESC
+            """)
+        else:
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at
+                FROM news_feed 
+                ORDER BY published_at DESC
+            """)
+        news = cur.fetchall()
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        news = []
+    finally:
+        cur.close()
+        conn.close()
     return render_template('admin/news_list.html', news=news)
 
 
@@ -1141,8 +1226,15 @@ def admin_news_list():
 @admin_required
 def admin_add_news():
     if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+        news_type = request.form.get('news_type', 'news')
+
+        if not title or not content:
+            flash('Заголовок и содержание обязательны!', 'error')
+            return redirect(url_for('admin_add_news'))
+
+        # Обработка изображений
         image_urls = []
         images = request.files.getlist('images')
         for img in images:
@@ -1152,18 +1244,48 @@ def admin_add_news():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
                 img.save(filepath)
                 image_urls.append(f"uploads/{unique_name}")
+
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO news_feed (id, type, title, content, image_url, published_at, created_at, updated_at)
-            VALUES (%s, 'news', %s, %s, %s, NOW(), NOW(), NOW())
-        """, (str(uuid.uuid4()), title, content, ','.join(image_urls) if image_urls else None))
-        conn.commit()
-        log_action(session['user_id'], 'add_news', f'Новость: {title}')
-        flash('Новость опубликована.', 'success')
-        cur.close()
-        conn.close()
-        return redirect(url_for('admin_news_list'))
+        try:
+            # Проверяем, есть ли колонка type
+            cur.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'news_feed' AND column_name = 'type'
+            """)
+            has_type_column = cur.fetchone() is not None
+
+            if has_type_column:
+                cur.execute("""
+                    INSERT INTO news_feed (id, type, title, content, image_url, 
+                                           published_at, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW(), NOW())
+                """, (str(uuid.uuid4()), news_type, title, content,
+                      ','.join(image_urls) if image_urls else None))
+            else:
+                # Если колонки type нет, вставляем без неё
+                cur.execute("""
+                    INSERT INTO news_feed (id, title, content, image_url, 
+                                           published_at, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW(), NOW())
+                """, (str(uuid.uuid4()), title, content,
+                      ','.join(image_urls) if image_urls else None))
+
+            conn.commit()
+            log_action(session['user_id'], 'add_news', f'{news_type}: {title}')
+            flash('Публикация успешно добавлена!', 'success')
+            return redirect(url_for('admin_news_list'))
+
+        except Exception as e:
+            conn.rollback()
+            flash(f'Ошибка при добавлении: {str(e)}', 'error')
+            print(f"Ошибка: {e}")
+        finally:
+            cur.close()
+            conn.close()
+
+    # GET запрос - показываем форму
     return render_template('admin/add_news.html')
 
 
@@ -1174,6 +1296,7 @@ def admin_delete_news(news_id):
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # Удаляем связанные изображения
         cur.execute("SELECT image_url FROM news_feed WHERE id=%s", (news_id_str,))
         news = cur.fetchone()
         if news and news['image_url']:
@@ -1185,8 +1308,8 @@ def admin_delete_news(news_id):
 
         cur.execute("DELETE FROM news_feed WHERE id=%s", (news_id_str,))
         conn.commit()
-        log_action(session['user_id'], 'delete_news', f'Удалена новость {news_id}')
-        flash('Новость удалена.', 'success')
+        log_action(session['user_id'], 'delete_news', f'Удалена публикация {news_id}')
+        flash('Публикация удалена.', 'success')
     except Exception as e:
         conn.rollback()
         flash(f'Ошибка при удалении: {e}', 'error')
@@ -1643,10 +1766,5 @@ def api_create_project():
 
 # ----- Запуск -----
 if __name__ == '__main__':
-    fix_project_dates()
-    ensure_max_students_column()
-    ensure_avatar_column()
-    ensure_message_attachments()
-    ensure_project_images_multiple()
     create_admin_if_not_exists()
     app.run(host="0.0.0.0", port=5000, debug=False)

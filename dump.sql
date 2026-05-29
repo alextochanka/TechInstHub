@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XXm0ORLTM9meaJAL6dSHbaXJrGC062grqvre2AB7rOpSmG7EMVOi4wWH9X8r0gZ
+\restrict DC5pE9S7JGTIImSLLzasgpJvXkXq8E7ySw7f6oABwoeEMBgiQjaN1JLpgqCrgHV
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
@@ -233,7 +233,9 @@ CREATE TABLE public.news_feed (
     image_url character varying(500),
     published_at timestamp without time zone,
     created_at timestamp without time zone,
-    updated_at timestamp without time zone
+    updated_at timestamp without time zone,
+    event_date date,
+    event_location character varying(500)
 );
 
 
@@ -473,6 +475,7 @@ COPY public.admins (id, user_id, admin_level, created_at, updated_at) FROM stdin
 --
 
 COPY public.applications (id, project_id, student_id, status, applied_at, updated_at) FROM stdin;
+b0717067-b6b0-4769-8cb1-e8cad5397a7e	5fc70644-6800-4033-a1c1-9b7d9b3f8023	628d35df-ade3-4b26-aab4-310f27a71a91	accepted	2026-05-30 01:58:34.509006	2026-05-30 01:59:07.939907
 \.
 
 
@@ -481,9 +484,8 @@ COPY public.applications (id, project_id, student_id, status, applied_at, update
 --
 
 COPY public.chat_members (id, chat_id, user_id, created_at) FROM stdin;
-3	77f27250-b186-499e-b9dd-bf165c6a1f9c	52174e17-fed4-4ec9-8bc6-e7377ebfb390	2026-05-04 16:53:36.022266
-4	77f27250-b186-499e-b9dd-bf165c6a1f9c	1b96963f-36fd-43e4-a8e3-f2b215634c8d	2026-05-04 16:53:36.022266
-5	77f27250-b186-499e-b9dd-bf165c6a1f9c	f6c29627-c1b5-4d01-8cc6-82a03604712c	2026-05-04 16:53:38.289976
+6	8d45be34-ba00-40f8-a227-acfa18be2157	1e2c3d0b-2267-4c17-acdf-cff20ac59965	2026-05-30 01:59:08.040818
+7	8d45be34-ba00-40f8-a227-acfa18be2157	628d35df-ade3-4b26-aab4-310f27a71a91	2026-05-30 01:59:08.040818
 \.
 
 
@@ -494,6 +496,7 @@ COPY public.chat_members (id, chat_id, user_id, created_at) FROM stdin;
 COPY public.chats (id, name, is_group, last_message, created_at, updated_at) FROM stdin;
 3d0dd027-8344-4cc0-9473-b15e1084f512	asddsasd	t	asdasdas	2026-05-03 20:29:17.587832	2026-05-03 20:29:30.896219
 77f27250-b186-499e-b9dd-bf165c6a1f9c	dassasa	t	ree	2026-05-04 16:53:36.022266	2026-05-04 17:35:59.046665
+8d45be34-ba00-40f8-a227-acfa18be2157	saddsaas	t	\N	2026-05-30 01:59:08.040818	2026-05-30 01:59:08.040818
 \.
 
 
@@ -502,8 +505,8 @@ COPY public.chats (id, name, is_group, last_message, created_at, updated_at) FRO
 --
 
 COPY public.images (id, entity_type, entity_id, image_url, image_type, sort_order, is_active, created_at, updated_at, file_name, file_size) FROM stdin;
-607be416-270f-463f-98d2-c728aee3b167	project	b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	uploads/55b0d743140f40d4bf0820f1c49eee90_2026-05-03_172047.png	main	0	t	2026-05-04 17:39:23.555274	2026-05-04 17:39:23.555274	\N	\N
-d422ccd0-8fa1-4650-82d2-d9768d12befb	project	b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	uploads/2da6b60f268b4a829f2a603ad537c040_2026-05-03_150134.png	main	0	t	2026-05-04 17:39:30.87756	2026-05-04 17:39:30.87756	\N	\N
+265928cc-5ad7-4c9a-bec9-f5b59b52a080	project	5fc70644-6800-4033-a1c1-9b7d9b3f8023	uploads/42235de04e6144b29c74c670e17bd470_2026-05-29_143417.png	main	0	t	2026-05-30 01:57:50.829208	2026-05-30 01:57:50.829208	\N	\N
+15995b3e-b9eb-42bb-b283-54159af1c276	project	5fc70644-6800-4033-a1c1-9b7d9b3f8023	uploads/e9f12af9d4a143d1a399d68907028092_2026-05-29_221848.png	main	0	t	2026-05-30 01:57:58.285752	2026-05-30 01:57:58.285752	\N	\N
 \.
 
 
@@ -512,13 +515,33 @@ d422ccd0-8fa1-4650-82d2-d9768d12befb	project	b2c7641c-7415-467e-bbd3-f9fa1f68c2e
 --
 
 COPY public.logs (id, user_id, action, details, ip_address, created_at) FROM stdin;
+123	628d35df-ade3-4b26-aab4-310f27a71a91	register	Регистрация студента	\N	2026-05-30 00:41:09.475375
+125	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:41:26.171255
 3	\N	logout	Выход из системы	\N	2026-05-03 20:25:32.453596
+127	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_news	news: dsfdsfsdfdsfsdf	\N	2026-05-30 00:54:51.123092
+129	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:56:56.882906
 6	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-03 20:27:03.612968
 7	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_user	Удалён пользователь 6bf6eb1a-20df-467d-bf2c-25d3b68f463c	\N	2026-05-03 20:27:17.761557
 8	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_user	Создан teacher: you@yandex.ru	\N	2026-05-03 20:27:33.922107
 9	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-03 20:27:35.683146
+131	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:20:52.918902
+133	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена публикация fd19a205-075b-43f4-a734-c6c6c6306202	\N	2026-05-30 01:36:25.198104
+135	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:39:23.297812
+137	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:40:58.398115
+139	628d35df-ade3-4b26-aab4-310f27a71a91	login	Вход в систему	\N	2026-05-30 01:42:36.233293
+141	628d35df-ade3-4b26-aab4-310f27a71a91	logout	Выход из системы	\N	2026-05-30 01:43:40.444266
+143	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 01:49:04.114842
+145	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 01:56:21.638883
+147	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_user	Создан teacher: damir@yandex.ru	\N	2026-05-30 01:57:00.213939
 19	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-03 20:29:46.232418
 20	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-03 20:31:12.77343
+149	1e2c3d0b-2267-4c17-acdf-cff20ac59965	login	Вход в систему	\N	2026-05-30 01:57:17.612877
+151	1e2c3d0b-2267-4c17-acdf-cff20ac59965	edit_project	Изменён проект 5fc70644-6800-4033-a1c1-9b7d9b3f8023	\N	2026-05-30 01:57:58.375896
+153	1e2c3d0b-2267-4c17-acdf-cff20ac59965	logout	Выход из системы	\N	2026-05-30 01:58:13.587848
+155	628d35df-ade3-4b26-aab4-310f27a71a91	apply	Заявка на проект 5fc70644-6800-4033-a1c1-9b7d9b3f8023	\N	2026-05-30 01:58:34.601755
+157	1e2c3d0b-2267-4c17-acdf-cff20ac59965	login	Вход в систему	\N	2026-05-30 01:58:53.830854
+159	1e2c3d0b-2267-4c17-acdf-cff20ac59965	update_profile	Изменено поле about	\N	2026-05-30 02:02:54.89766
+161	1e2c3d0b-2267-4c17-acdf-cff20ac59965	logout	Выход из системы	\N	2026-05-30 02:04:29.87052
 26	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-04 15:19:11.480972
 27	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_news	Новость: ddassads	\N	2026-05-04 15:19:36.829949
 28	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 15:20:05.88455
@@ -531,58 +554,72 @@ COPY public.logs (id, user_id, action, details, ip_address, created_at) FROM std
 35	ee3c8434-e840-499f-98f4-9cc8542ccd9b	update_profile	Изменено поле about	\N	2026-05-04 16:41:07.708441
 36	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_user	Создан teacher: you@yandex.ru	\N	2026-05-04 16:41:55.812787
 37	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 16:42:58.659323
-38	52174e17-fed4-4ec9-8bc6-e7377ebfb390	login	Вход в систему	\N	2026-05-04 16:43:06.118015
-39	52174e17-fed4-4ec9-8bc6-e7377ebfb390	update_profile	Изменено поле about	\N	2026-05-04 16:43:46.593109
-40	52174e17-fed4-4ec9-8bc6-e7377ebfb390	add_project	Создан проект dassasa	\N	2026-05-04 16:44:39.292197
-41	52174e17-fed4-4ec9-8bc6-e7377ebfb390	edit_project	Изменён проект c96b9cea-ef06-4103-a549-ae1793634cf0	\N	2026-05-04 16:44:46.552635
-42	52174e17-fed4-4ec9-8bc6-e7377ebfb390	logout	Выход из системы	\N	2026-05-04 16:49:06.022196
-43	f6c29627-c1b5-4d01-8cc6-82a03604712c	register	Регистрация студента	\N	2026-05-04 16:49:40.715795
-44	f6c29627-c1b5-4d01-8cc6-82a03604712c	apply	Заявка на проект c96b9cea-ef06-4103-a549-ae1793634cf0	\N	2026-05-04 16:49:46.85543
-45	f6c29627-c1b5-4d01-8cc6-82a03604712c	add_review	Отзыв для 52174e17-fed4-4ec9-8bc6-e7377ebfb390	\N	2026-05-04 16:52:24.857721
-46	f6c29627-c1b5-4d01-8cc6-82a03604712c	logout	Выход из системы	\N	2026-05-04 16:52:34.899598
-47	1b96963f-36fd-43e4-a8e3-f2b215634c8d	register	Регистрация студента	\N	2026-05-04 16:53:03.43855
-48	1b96963f-36fd-43e4-a8e3-f2b215634c8d	apply	Заявка на проект c96b9cea-ef06-4103-a549-ae1793634cf0	\N	2026-05-04 16:53:08.00453
-49	1b96963f-36fd-43e4-a8e3-f2b215634c8d	logout	Выход из системы	\N	2026-05-04 16:53:09.759179
-50	52174e17-fed4-4ec9-8bc6-e7377ebfb390	login	Вход в систему	\N	2026-05-04 16:53:24.011536
-51	52174e17-fed4-4ec9-8bc6-e7377ebfb390	accept_application	Принята заявка 4a2787d7-95ea-4721-9b15-28f93258684f	\N	2026-05-04 16:53:36.182828
-52	52174e17-fed4-4ec9-8bc6-e7377ebfb390	accept_application	Принята заявка e8580d4d-3534-4f6b-8870-2955c1465e3e	\N	2026-05-04 16:53:38.490889
-53	52174e17-fed4-4ec9-8bc6-e7377ebfb390	logout	Выход из системы	\N	2026-05-04 16:58:49.829753
-54	f6c29627-c1b5-4d01-8cc6-82a03604712c	login	Вход в систему	\N	2026-05-04 16:58:59.345227
-55	f6c29627-c1b5-4d01-8cc6-82a03604712c	complete_project	Проект c96b9cea-ef06-4103-a549-ae1793634cf0 завершён	\N	2026-05-04 16:59:03.781258
-56	f6c29627-c1b5-4d01-8cc6-82a03604712c	logout	Выход из системы	\N	2026-05-04 16:59:15.582107
-57	1b96963f-36fd-43e4-a8e3-f2b215634c8d	login	Вход в систему	\N	2026-05-04 16:59:32.066136
-58	1b96963f-36fd-43e4-a8e3-f2b215634c8d	logout	Выход из системы	\N	2026-05-04 17:00:19.138856
+124	628d35df-ade3-4b26-aab4-310f27a71a91	logout	Выход из системы	\N	2026-05-30 00:41:18.310427
+126	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:54:04.405509
+128	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 00:56:37.572723
+130	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена новость 9f1ca720-c1f9-4a4b-9a2b-bbba16046999	\N	2026-05-30 01:09:42.743198
 59	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-04 17:00:27.368796
 60	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена новость 49f6fa03-a77f-4b25-a3d5-ed7e2ad21048	\N	2026-05-04 17:34:43.504413
 61	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 17:35:17.023619
-62	1b96963f-36fd-43e4-a8e3-f2b215634c8d	login	Вход в систему	\N	2026-05-04 17:35:28.485273
-63	1b96963f-36fd-43e4-a8e3-f2b215634c8d	update_profile	Изменено поле about	\N	2026-05-04 17:37:51.327438
-64	1b96963f-36fd-43e4-a8e3-f2b215634c8d	logout	Выход из системы	\N	2026-05-04 17:37:53.841678
+132	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_news	internship: sadasdas	\N	2026-05-30 01:33:20.293383
+134	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_news	internship: вввыавыавыа	\N	2026-05-30 01:37:06.398393
+136	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 01:40:49.709957
 65	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-04 17:38:03.403852
 66	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_user	Создан teacher: andreikholm@gmail.com	\N	2026-05-04 17:38:33.62837
 67	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 17:38:35.599576
-68	56986cf6-544b-4e33-85bf-796f31a3a902	login	Вход в систему	\N	2026-05-04 17:38:45.689348
-69	56986cf6-544b-4e33-85bf-796f31a3a902	add_project	Создан проект dassa	\N	2026-05-04 17:39:23.665034
-70	56986cf6-544b-4e33-85bf-796f31a3a902	edit_project	Изменён проект b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	\N	2026-05-04 17:39:31.10095
-71	56986cf6-544b-4e33-85bf-796f31a3a902	edit_project	Изменён проект b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	\N	2026-05-04 17:39:35.554715
-72	56986cf6-544b-4e33-85bf-796f31a3a902	update_profile	Изменено поле about	\N	2026-05-04 17:40:11.664122
-73	56986cf6-544b-4e33-85bf-796f31a3a902	update_profile	Изменено поле about	\N	2026-05-04 17:40:22.150884
-74	56986cf6-544b-4e33-85bf-796f31a3a902	logout	Выход из системы	\N	2026-05-04 17:40:28.517073
+138	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 01:42:28.167085
+140	628d35df-ade3-4b26-aab4-310f27a71a91	update_profile	Изменено поле about	\N	2026-05-30 01:43:10.198424
+142	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:43:48.582668
+144	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:50:22.348516
+146	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 01:56:31.170229
+148	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 01:57:06.311797
+150	1e2c3d0b-2267-4c17-acdf-cff20ac59965	add_project	Создан проект saddsaas	\N	2026-05-30 01:57:50.942198
 75	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-04 17:40:35.17541
 76	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_review	Отзыв для 1b96963f-36fd-43e4-a8e3-f2b215634c8d	\N	2026-05-04 17:51:22.635245
 77	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_review	Отзыв для f6c29627-c1b5-4d01-8cc6-82a03604712c	\N	2026-05-04 17:51:27.873396
 78	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 18:01:14.871341
-79	1b96963f-36fd-43e4-a8e3-f2b215634c8d	login	Вход в систему	\N	2026-05-04 18:01:27.189548
-80	1b96963f-36fd-43e4-a8e3-f2b215634c8d	add_review	Отзыв для 52174e17-fed4-4ec9-8bc6-e7377ebfb390	\N	2026-05-04 18:01:35.120685
-81	1b96963f-36fd-43e4-a8e3-f2b215634c8d	add_review	Отзыв для 56986cf6-544b-4e33-85bf-796f31a3a902	\N	2026-05-04 18:01:42.682857
-82	1b96963f-36fd-43e4-a8e3-f2b215634c8d	logout	Выход из системы	\N	2026-05-04 18:01:48.664773
-83	56986cf6-544b-4e33-85bf-796f31a3a902	login	Вход в систему	\N	2026-05-04 18:02:00.390299
-84	56986cf6-544b-4e33-85bf-796f31a3a902	add_review	Отзыв для 1b96963f-36fd-43e4-a8e3-f2b215634c8d	\N	2026-05-04 18:02:22.766494
-85	56986cf6-544b-4e33-85bf-796f31a3a902	add_review	Отзыв для f6c29627-c1b5-4d01-8cc6-82a03604712c	\N	2026-05-04 18:02:35.175761
-86	56986cf6-544b-4e33-85bf-796f31a3a902	logout	Выход из системы	\N	2026-05-04 18:05:13.518383
+152	1e2c3d0b-2267-4c17-acdf-cff20ac59965	edit_project	Изменён проект 5fc70644-6800-4033-a1c1-9b7d9b3f8023	\N	2026-05-30 01:58:02.836523
+154	628d35df-ade3-4b26-aab4-310f27a71a91	login	Вход в систему	\N	2026-05-30 01:58:22.02087
+156	628d35df-ade3-4b26-aab4-310f27a71a91	logout	Выход из системы	\N	2026-05-30 01:58:44.71393
+158	1e2c3d0b-2267-4c17-acdf-cff20ac59965	accept_application	Принята заявка b0717067-b6b0-4769-8cb1-e8cad5397a7e	\N	2026-05-30 01:59:08.136568
+160	1e2c3d0b-2267-4c17-acdf-cff20ac59965	update_profile	Изменено поле about	\N	2026-05-30 02:03:02.047296
+162	1e2c3d0b-2267-4c17-acdf-cff20ac59965	login	Вход в систему	\N	2026-05-30 02:04:52.877442
 87	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-04 18:05:20.308302
 88	ee3c8434-e840-499f-98f4-9cc8542ccd9b	admin_delete_project	Удалён проект c96b9cea-ef06-4103-a549-ae1793634cf0	\N	2026-05-04 18:07:21.298362
 89	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-04 18:12:34.981618
+90	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-05 13:46:13.723036
+91	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-05 13:47:30.100734
+92	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-06 14:50:57.006084
+93	ee3c8434-e840-499f-98f4-9cc8542ccd9b	add_news	Новость: czxzccxz	\N	2026-05-06 14:52:26.703712
+94	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-06 14:53:35.153403
+95	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-12 12:22:17.480119
+96	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-15 20:30:40.632104
+97	ee3c8434-e840-499f-98f4-9cc8542ccd9b	update_profile	Изменено поле about	\N	2026-05-15 20:37:48.094958
+98	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-15 21:09:57.670074
+99	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-15 21:10:06.312953
+100	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-15 21:10:35.096793
+101	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-15 21:10:51.472999
+102	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-28 00:26:32.152598
+103	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-28 00:30:02.388351
+104	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-28 00:32:18.916944
+105	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-28 00:54:04.246433
+106	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-28 14:43:06.281274
+107	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-28 15:15:14.405994
+108	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-28 15:15:55.692811
+109	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-29 23:52:38.376192
+110	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 00:18:23.861941
+111	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:18:34.239939
+112	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:31:54.958866
+113	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:32:08.440506
+114	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_user	Удалён пользователь 52174e17-fed4-4ec9-8bc6-e7377ebfb390	\N	2026-05-30 00:34:07.798133
+115	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_user	Удалён пользователь 56986cf6-544b-4e33-85bf-796f31a3a902	\N	2026-05-30 00:34:16.555734
+116	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_user	Удалён пользователь 1b96963f-36fd-43e4-a8e3-f2b215634c8d	\N	2026-05-30 00:34:19.155233
+117	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_user	Удалён пользователь f6c29627-c1b5-4d01-8cc6-82a03604712c	\N	2026-05-30 00:34:21.423297
+118	ee3c8434-e840-499f-98f4-9cc8542ccd9b	logout	Выход из системы	\N	2026-05-30 00:34:47.853916
+119	ee3c8434-e840-499f-98f4-9cc8542ccd9b	login	Вход в систему	\N	2026-05-30 00:34:56.807635
+120	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена новость 38db64e5-f4c4-4dbd-97dd-afccaa22702c	\N	2026-05-30 00:36:33.157942
+121	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена новость ea9c6630-71af-48a6-ba0a-bba9d9a623ab	\N	2026-05-30 00:36:34.355798
+122	ee3c8434-e840-499f-98f4-9cc8542ccd9b	delete_news	Удалена новость ea9c6630-71af-48a6-ba0a-bba9d9a623ab	\N	2026-05-30 00:36:36.018066
 \.
 
 
@@ -591,7 +628,6 @@ COPY public.logs (id, user_id, action, details, ip_address, created_at) FROM std
 --
 
 COPY public.message_attachments (id, message_id, file_url, file_name, file_size, created_at) FROM stdin;
-fd95c71b-8247-40ba-a859-c66114279c11	012338c5-1a08-4eb9-97af-bb118718350c	uploads/2b1cf865ffd440199212d0ba511d1016_images.jpg	images.jpg	4910	2026-05-04 16:57:38.647986
 \.
 
 
@@ -600,8 +636,6 @@ fd95c71b-8247-40ba-a859-c66114279c11	012338c5-1a08-4eb9-97af-bb118718350c	upload
 --
 
 COPY public.messages (id, chat_id, sender_id, content, is_read, sent_at, updated_at) FROM stdin;
-aa36d34b-a21e-4798-a2bf-5b972317bef6	77f27250-b186-499e-b9dd-bf165c6a1f9c	1b96963f-36fd-43e4-a8e3-f2b215634c8d	ree	f	2026-05-04 17:35:59.046665	2026-05-04 17:35:59.046665
-012338c5-1a08-4eb9-97af-bb118718350c	77f27250-b186-499e-b9dd-bf165c6a1f9c	52174e17-fed4-4ec9-8bc6-e7377ebfb390	assadassa	t	2026-05-04 16:57:38.647986	2026-05-04 16:57:38.647986
 \.
 
 
@@ -609,8 +643,8 @@ aa36d34b-a21e-4798-a2bf-5b972317bef6	77f27250-b186-499e-b9dd-bf165c6a1f9c	1b9696
 -- Data for Name: news_feed; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.news_feed (id, type, title, content, image_url, published_at, created_at, updated_at) FROM stdin;
-ea9c6630-71af-48a6-ba0a-bba9d9a623ab	news	ddassads	saddasdasdsad	uploads/52477852333240e2aa10f6bc139d28e7_images_3.jpg	2026-05-04 15:19:36.725713	2026-05-04 15:19:36.725713	2026-05-04 15:19:36.725713
+COPY public.news_feed (id, type, title, content, image_url, published_at, created_at, updated_at, event_date, event_location) FROM stdin;
+272f4fd3-4774-4967-abbe-2203a23dbe35	internship	вввыавыавыа	выавыаываваы	uploads/d9b2a8fa60fd4f6f9d1d530e47cdcccb_2026-05-29_142802.png	2026-05-30 01:37:06.320491	2026-05-30 01:37:06.320491	2026-05-30 01:37:06.320491	\N	\N
 \.
 
 
@@ -619,7 +653,7 @@ ea9c6630-71af-48a6-ba0a-bba9d9a623ab	news	ddassads	saddasdasdsad	uploads/5247785
 --
 
 COPY public.projects (id, id_tutor, title, description, requirements, details, topic_id, difficulty, deadline, status, max_students, created_at, updated_at) FROM stdin;
-b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	56986cf6-544b-4e33-85bf-796f31a3a902	dassa	sadasdasd	sadsaadd	asdasdasd	4	средний	2004-12-23	открыт	1	2026-05-04 17:39:23.555274	2026-05-04 17:39:35.458975
+5fc70644-6800-4033-a1c1-9b7d9b3f8023	1e2c3d0b-2267-4c17-acdf-cff20ac59965	saddsaas	asdadasdsadas	dsdasdsadsadas	dsaasdasdsaddsadsdsad	8	легкий	2004-12-23	открыт	4	2026-05-30 01:57:50.829208	2026-05-30 01:58:02.736166
 \.
 
 
@@ -628,13 +662,6 @@ b2c7641c-7415-467e-bbd3-f9fa1f68c2e1	56986cf6-544b-4e33-85bf-796f31a3a902	dassa	
 --
 
 COPY public.reviews (id, author_id, recipient_id, rating, comment, created_at, updated_at) FROM stdin;
-bf3d27ce-d698-4655-8a38-07d586a69c5a	f6c29627-c1b5-4d01-8cc6-82a03604712c	52174e17-fed4-4ec9-8bc6-e7377ebfb390	5		2026-05-04 16:52:24.785117	2026-05-04 16:52:24.785117
-653bf04e-a1c9-46a4-956c-b829ae96fab2	ee3c8434-e840-499f-98f4-9cc8542ccd9b	1b96963f-36fd-43e4-a8e3-f2b215634c8d	5		2026-05-04 17:51:22.540145	2026-05-04 17:51:22.540145
-eb3db152-ab5c-4a19-8a65-07cf6b27d0fd	ee3c8434-e840-499f-98f4-9cc8542ccd9b	f6c29627-c1b5-4d01-8cc6-82a03604712c	3		2026-05-04 17:51:27.800147	2026-05-04 17:51:27.800147
-4c59c230-e6ff-4318-bc48-583883e97d47	1b96963f-36fd-43e4-a8e3-f2b215634c8d	52174e17-fed4-4ec9-8bc6-e7377ebfb390	3		2026-05-04 18:01:35.044864	2026-05-04 18:01:35.044864
-235f90fc-1f3c-4ac4-bd7e-de6a9a4ed3c7	1b96963f-36fd-43e4-a8e3-f2b215634c8d	56986cf6-544b-4e33-85bf-796f31a3a902	1		2026-05-04 18:01:42.60162	2026-05-04 18:01:42.60162
-6cd8a143-8f53-41dc-9e7f-21fdfed1e7b0	56986cf6-544b-4e33-85bf-796f31a3a902	1b96963f-36fd-43e4-a8e3-f2b215634c8d	1	Не очень хороший человек!!!	2026-05-04 18:02:22.651054	2026-05-04 18:02:22.651054
-8b483d1c-c53c-4744-8009-68deb4070e77	56986cf6-544b-4e33-85bf-796f31a3a902	f6c29627-c1b5-4d01-8cc6-82a03604712c	5	Отличный студент!!!	2026-05-04 18:02:35.06436	2026-05-04 18:02:35.06436
 \.
 
 
@@ -643,8 +670,7 @@ eb3db152-ab5c-4a19-8a65-07cf6b27d0fd	ee3c8434-e840-499f-98f4-9cc8542ccd9b	f6c296
 --
 
 COPY public.students (id, user_id, student_id, course, created_at, updated_at) FROM stdin;
-3	f6c29627-c1b5-4d01-8cc6-82a03604712c	STU20260504f6c2	2	2026-05-04 16:49:40.651114	2026-05-04 16:49:40.651114
-4	1b96963f-36fd-43e4-a8e3-f2b215634c8d	STU202605041b96	4	2026-05-04 16:53:03.336523	2026-05-04 16:53:03.336523
+5	628d35df-ade3-4b26-aab4-310f27a71a91	STU20260530628d	3	2026-05-30 00:41:09.394471	2026-05-30 00:41:09.394471
 \.
 
 
@@ -653,8 +679,7 @@ COPY public.students (id, user_id, student_id, course, created_at, updated_at) F
 --
 
 COPY public.teachers (id, user_id, "position", created_at, updated_at) FROM stdin;
-3	52174e17-fed4-4ec9-8bc6-e7377ebfb390	Преподаватель	2026-05-04 16:41:55.724733	2026-05-04 16:41:55.724733
-4	56986cf6-544b-4e33-85bf-796f31a3a902	Преподаватель	2026-05-04 17:38:33.4899	2026-05-04 17:38:33.4899
+5	1e2c3d0b-2267-4c17-acdf-cff20ac59965	Преподаватель	2026-05-30 01:57:00.13498	2026-05-30 01:57:00.13498
 \.
 
 
@@ -663,9 +688,7 @@ COPY public.teachers (id, user_id, "position", created_at, updated_at) FROM stdi
 --
 
 COPY public.topics (id, name, created_at) FROM stdin;
-4	Интересно	2026-05-04 16:42:15.50654
-5	yfghgfhgf	2026-05-04 16:42:17.684674
-6	NVIDIA	2026-05-04 16:42:20.617027
+8	sadsadsadas	2026-05-30 01:41:57.656499
 \.
 
 
@@ -674,11 +697,9 @@ COPY public.topics (id, name, created_at) FROM stdin;
 --
 
 COPY public.users (id, email, password_hash, first_name, last_name, group_number, course, about, role, is_active, is_verified, rating, created_at, updated_at, avatar_url) FROM stdin;
-ee3c8434-e840-499f-98f4-9cc8542ccd9b	admin@techinsthub.com	pbkdf2:sha256:600000$mEeVyTKGIUEv8uTk$368c97b606696bc557457c08f9325172014f1381f24c603d6d065562e9d04cc7	Администратор	Системы	\N	\N		admin	t	t	0.00	2026-05-03 20:17:56.376681	2026-05-04 16:41:07.616094	avatars/48c81152b19343eebc191837452e18f7_crocus_04.jpg
-52174e17-fed4-4ec9-8bc6-e7377ebfb390	you@yandex.ru	pbkdf2:sha256:600000$yM6drX0BKetJqNwW$908107e66424fecc02f43257ad3e116cd16627dd182408b6de1ee6f2bdfa5623	Игорь	Ананченко	\N	\N	adsdsdsdsdsdsdsdsdsdsdsdsdsds	teacher	t	t	0.00	2026-05-04 16:41:55.724733	2026-05-04 16:43:46.495365	avatars/3381a690e7ef47dab2da4bcc27f64497_images.jpg
-f6c29627-c1b5-4d01-8cc6-82a03604712c	kaverzin@yandex.ru	pbkdf2:sha256:600000$ppP1bFU9r4nxDMjf$cb538196c813022d3b5d5c90e68e7b025733f6c702d283794c4855da47c55ab3	Илья	Каверзин	437	2	\N	student	t	f	0.00	2026-05-04 16:49:40.651114	2026-05-04 16:49:40.651114	avatars/e4421a3294be40b8bc8fbd472d72b1f6_1.png
-1b96963f-36fd-43e4-a8e3-f2b215634c8d	damir@yandex.ru	pbkdf2:sha256:600000$OgirwOFfLRgwVp88$cbe1bb5cecf387b2db5a860eebce6cc3dd338718608cee9a61299ac2e8a2ad34	Алексис	Маккалистер	234	4	213sdd2	student	t	f	0.00	2026-05-04 16:53:03.336523	2026-05-04 17:37:51.233068	avatars/60d4911b4f124af689674a57fe11329c_scale_1200.jpeg
-56986cf6-544b-4e33-85bf-796f31a3a902	andreikholm@gmail.com	pbkdf2:sha256:600000$069LPdg6hrZwwG38$25ecc3b27a05a5570e67abe7691465d9e1b172961dd5353fb737cf6fd1163076	Андрей	Холмогоров	\N	\N	wq2	teacher	t	t	0.00	2026-05-04 17:38:33.4899	2026-05-04 17:40:22.021696	avatars/43ca9fdd0122432795b7a14d06bc70b2_Sergiu.webp
+1e2c3d0b-2267-4c17-acdf-cff20ac59965	damir@yandex.ru	pbkdf2:sha256:600000$o2Kyq5jctKlRjS25$e21987d413c090894acc01021fbb4cb66621d36d218bc469eda789e7c6fa96a5	Дамир	Гаштов	\N	\N	ваывыптаравыямяв	teacher	t	t	0.00	2026-05-30 01:57:00.13498	2026-05-30 02:03:01.919057	avatars/00a42fb2e59e45f2a42d6930c2ceabdf_2026-05-29_143417.png
+ee3c8434-e840-499f-98f4-9cc8542ccd9b	admin@techinsthub.com	pbkdf2:sha256:600000$mEeVyTKGIUEv8uTk$368c97b606696bc557457c08f9325172014f1381f24c603d6d065562e9d04cc7	Администратор	Системы	\N	\N	sfgdggfgg	admin	t	t	0.00	2026-05-03 20:17:56.376681	2026-05-15 20:37:48.022882	avatars/48c81152b19343eebc191837452e18f7_crocus_04.jpg
+628d35df-ade3-4b26-aab4-310f27a71a91	alexeycherevkov@yandex.ru	pbkdf2:sha256:600000$c0EONHbNnjM70GKn$c6a1ad83fc504ff3edd0d776c7c24a3d7731a4d8361d0b2b4e3cb5c4f5690403	Иван	Иванов	438	3		student	t	f	0.00	2026-05-30 00:41:09.394471	2026-05-30 01:43:10.103217	avatars/3a3b20f3515a439fa8b103ab9603dc08_scale_1200.jpeg
 \.
 
 
@@ -693,35 +714,35 @@ SELECT pg_catalog.setval('public.admins_id_seq', 1, true);
 -- Name: chat_members_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.chat_members_id_seq', 5, true);
+SELECT pg_catalog.setval('public.chat_members_id_seq', 7, true);
 
 
 --
 -- Name: logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.logs_id_seq', 89, true);
+SELECT pg_catalog.setval('public.logs_id_seq', 162, true);
 
 
 --
 -- Name: students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.students_id_seq', 4, true);
+SELECT pg_catalog.setval('public.students_id_seq', 5, true);
 
 
 --
 -- Name: teachers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.teachers_id_seq', 4, true);
+SELECT pg_catalog.setval('public.teachers_id_seq', 5, true);
 
 
 --
 -- Name: topics_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.topics_id_seq', 6, true);
+SELECT pg_catalog.setval('public.topics_id_seq', 8, true);
 
 
 --
@@ -1126,5 +1147,5 @@ ALTER TABLE ONLY public.teachers
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XXm0ORLTM9meaJAL6dSHbaXJrGC062grqvre2AB7rOpSmG7EMVOi4wWH9X8r0gZ
+\unrestrict DC5pE9S7JGTIImSLLzasgpJvXkXq8E7ySw7f6oABwoeEMBgiQjaN1JLpgqCrgHV
 
