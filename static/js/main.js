@@ -73,7 +73,7 @@ function initTogglePassword(toggleBtnId, passwordFieldId, eyeIconId, staticUrl) 
         const type = pwdField.getAttribute('type') === 'password' ? 'text' : 'password';
         pwdField.setAttribute('type', type);
         if (eyeIcon) {
-            eyeIcon.src = staticUrl + (type === 'password' ? 'Eye-off.svg' : 'Eye-on.svg');
+            eyeIcon.src = staticUrl + (type === 'password' ? 'eye-off.svg' : 'eye-on.svg');
         }
     });
 }
