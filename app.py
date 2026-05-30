@@ -29,8 +29,8 @@ DB_CONFIG = {
     'client_encoding': 'UTF8'
 }
 
-UPLOAD_FOLDER = 'static/uploads'
-AVATAR_FOLDER = 'static/avatars'
+UPLOAD_FOLDER = '/opt/render/project/src/static/uploads'
+AVATAR_FOLDER = '/opt/render/project/src/static/avatar'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['AVATAR_FOLDER'] = AVATAR_FOLDER

@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: techinsthub
+    env: python
+    plan: free                      
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    rootDirectory: .
+
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@techinsthub.com
+      - key: ADMIN_PASSWORD
+        value: Admin123!
+      - key: FLASK_ENV
+        value: production
+
+      # База данных (заполни после создания PostgreSQL)
+      - key: DB_HOST
+        value: ""                   
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: ""
+      - key: DB_USER
+        value: ""
+      - key: DB_PASSWORD
+        value: ""
+
+    # Диски для постоянного хранения файлов
+    disks:
+      - name: uploads
+        mountPath: /opt/render/project/src/static/uploads
+        sizeGB: 2
+
+      - name: avatars
+        mountPath: /opt/render/project/src/static/avatars
+        sizeGB: 1
+
+    autoDeploy: true
