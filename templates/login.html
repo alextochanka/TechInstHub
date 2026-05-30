@@ -1,15 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Вход — TechInstHub{% endblock %}
 {% block hero_title %}Вход в аккаунт{% endblock %}
-{% block hero_description %}Войдите, чтобы продолжить обучение{% endblock %}
-{% block head %}
-{{ super() }}
-<script>
-    if (window.performance && window.performance.navigation.type === 2) {
-        window.location.href = "{{ url_for('index') }}";
-    }
-</script>
-{% endblock %}
+{% block hero_description %}Войдите!!!{% endblock %}
 {% block content %}
 <div class="ui-vstack gap-32 align-center" style="max-width: 500px; margin: 0 auto;">
     <form method="post" class="ui-vstack gap-24 w-full" id="loginForm">
