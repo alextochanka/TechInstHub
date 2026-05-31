@@ -11,7 +11,7 @@
 # Установка #
 1.  Клонируйте репозиторий:
     ```bash
-    git clone (https://github.com/alextochanka/TechInstHub)
+    git clone https://github.com/alextochanka/TechInstHub
     cd TechInstHub
     ```
 2.  Создайте и активируйте виртуальное окружение:
