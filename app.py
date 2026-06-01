@@ -59,6 +59,7 @@ def require_login():
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
 
+
 def get_current_user():
     """Возвращает пользователя и для сессии, и для JWT"""
     if 'user_id' in session:
@@ -68,7 +69,7 @@ def get_current_user():
         user_id = get_jwt_identity()
         if user_id:
             return {'id': user_id}
-    except:
+    except Exception:
         pass
     return None
 
@@ -98,6 +99,7 @@ def log_action(user_id, action, details=None, ip_address=None):
         if conn:
             conn.close()
 
+
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -119,37 +121,6 @@ def teacher_required(f):
 
     return decorated
 
-def ensure_message_attachments():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name='message_attachments'
-            )
-        """)
-        table_exists = cur.fetchone()['exists']
-
-        if not table_exists:
-            cur.execute("""
-                CREATE TABLE message_attachments (
-                    id UUID PRIMARY KEY,
-                    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
-                    file_url VARCHAR(500) NOT NULL,
-                    file_name VARCHAR(255),
-                    file_size INTEGER,
-                    created_at TIMESTAMP DEFAULT NOW()
-                )
-            """)
-            print("✅ Создана таблица message_attachments")
-        conn.commit()
-    except Exception as e:
-        print(f"⚠️ Ошибка при обновлении message_attachments: {e}")
-        conn.rollback()
-    finally:
-        cur.close()
-        conn.close()
 
 def ensure_project_chat(project_id, tutor_id, student_id=None):
     conn = get_db_connection()
@@ -212,7 +183,6 @@ def create_admin_if_not_exists():
         cur.close()
         conn.close()
 
-
 # ----- Маршруты -----
 @app.route('/')
 def index():
@@ -247,11 +217,12 @@ def index():
     conn.close()
     return render_template('index.html', projects=projects, all_news=all_news)
 
+
 # ----- Маршруты для стажировок и мероприятий -----
 @app.route('/internships')
 def internships_list():
     """Страница со стажировками"""
-    conn = get_db_connection()  # Исправлено с get_db_connections на get_db_connection
+    conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute("""
@@ -276,30 +247,13 @@ def events_list():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # Проверяем, есть ли колонки event_date и event_location
         cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'news_feed' AND column_name IN ('event_date', 'event_location')
+            SELECT id, title, content, image_url, published_at, type,
+                   event_date, event_location
+            FROM news_feed
+            WHERE type = 'event'
+            ORDER BY event_date ASC NULLS LAST
         """)
-        existing_columns = [row['column_name'] for row in cur.fetchall()]
-
-        if 'event_date' in existing_columns and 'event_location' in existing_columns:
-            cur.execute("""
-                SELECT id, title, content, image_url, published_at, type,
-                       event_date, event_location
-                FROM news_feed
-                WHERE type = 'event'
-                ORDER BY event_date ASC NULLS LAST
-            """)
-        else:
-            # Если колонок нет, выбираем только существующие
-            cur.execute("""
-                SELECT id, title, content, image_url, published_at, type
-                FROM news_feed
-                WHERE type = 'event'
-                ORDER BY published_at DESC
-            """)
         events = cur.fetchall()
     except Exception as e:
         print(f"Ошибка при получении мероприятий: {e}")
@@ -310,8 +264,9 @@ def events_list():
     return render_template('events.html', events=events)
 
 
+@app.route('/news')
 @app.route('/news/<string:type_filter>')
-def news_by_type(type_filter):
+def news_by_type(type_filter='all'):
     """Фильтрация новостей по типу"""
     if type_filter not in ['news', 'internship', 'event', 'all']:
         type_filter = 'all'
@@ -319,26 +274,33 @@ def news_by_type(type_filter):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    if type_filter == 'all':
-        cur.execute("""
-            SELECT id, title, content, image_url, published_at, type,
-                   event_date, event_location
-            FROM news_feed
-            ORDER BY published_at DESC
-        """)
-    else:
-        cur.execute("""
-            SELECT id, title, content, image_url, published_at, type,
-                   event_date, event_location
-            FROM news_feed
-            WHERE type = %s
-            ORDER BY published_at DESC
-        """, (type_filter,))
+    try:
+        if type_filter == 'all':
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at, type,
+                       event_date, event_location
+                FROM news_feed
+                ORDER BY published_at DESC
+            """)
+        else:
+            cur.execute("""
+                SELECT id, title, content, image_url, published_at, type,
+                       event_date, event_location
+                FROM news_feed
+                WHERE type = %s
+                ORDER BY published_at DESC
+            """, (type_filter,))
 
-    all_news = cur.fetchall()
-    cur.close()
-    conn.close()
+        all_news = cur.fetchall()
+    except Exception as e:
+        print(f"Ошибка при получении новостей: {e}")
+        all_news = []
+    finally:
+        cur.close()
+        conn.close()
+
     return render_template('news.html', news=all_news, active_filter=type_filter)
+
 
 @app.route('/catalog')
 def catalog():
@@ -956,23 +918,6 @@ def send_message(chat_id):
     return redirect(url_for('chat', chat_id=chat_id))
 
 
-# ----- НОВОСТИ -----
-@app.route('/news')
-def news_list():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        SELECT id, title, content, image_url, published_at
-        FROM news_feed
-        WHERE type = 'news'
-        ORDER BY published_at DESC
-    """)
-    news = cur.fetchall()
-    cur.close()
-    conn.close()
-    return render_template('news.html', news=news)
-
-
 # ----- АДМИН-ПАНЕЛЬ -----
 @app.route('/admin')
 @admin_required
@@ -1160,8 +1105,7 @@ def admin_add_topic():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO topics (id, name, created_at) VALUES (nextval('topics_id_seq'), %s, NOW())",
-                        (name,))
+            cur.execute("INSERT INTO topics (name, created_at) VALUES (%s, NOW()) RETURNING id", (name,))
             conn.commit()
             flash('Тема добавлена.', 'success')
         except Exception as e:
@@ -1191,27 +1135,12 @@ def admin_news_list():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        # Проверяем наличие колонки type
         cur.execute("""
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'news_feed' AND column_name = 'type'
+            SELECT id, title, content, image_url, published_at, 
+                   COALESCE(type, 'news') as type
+            FROM news_feed 
+            ORDER BY published_at DESC
         """)
-        has_type_column = cur.fetchone() is not None
-
-        if has_type_column:
-            cur.execute("""
-                SELECT id, title, content, image_url, published_at, 
-                       COALESCE(type, 'news') as type
-                FROM news_feed 
-                ORDER BY published_at DESC
-            """)
-        else:
-            cur.execute("""
-                SELECT id, title, content, image_url, published_at
-                FROM news_feed 
-                ORDER BY published_at DESC
-            """)
         news = cur.fetchall()
     except Exception as e:
         print(f"Ошибка: {e}")
@@ -1229,6 +1158,8 @@ def admin_add_news():
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
         news_type = request.form.get('news_type', 'news')
+        event_date = request.form.get('event_date') or None
+        event_location = request.form.get('event_location') or None
 
         if not title or not content:
             flash('Заголовок и содержание обязательны!', 'error')
@@ -1248,29 +1179,14 @@ def admin_add_news():
         conn = get_db_connection()
         cur = conn.cursor()
         try:
-            # Проверяем, есть ли колонка type
             cur.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'news_feed' AND column_name = 'type'
-            """)
-            has_type_column = cur.fetchone() is not None
-
-            if has_type_column:
-                cur.execute("""
-                    INSERT INTO news_feed (id, type, title, content, image_url, 
-                                           published_at, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, NOW(), NOW(), NOW())
-                """, (str(uuid.uuid4()), news_type, title, content,
-                      ','.join(image_urls) if image_urls else None))
-            else:
-                # Если колонки type нет, вставляем без неё
-                cur.execute("""
-                    INSERT INTO news_feed (id, title, content, image_url, 
-                                           published_at, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW(), NOW(), NOW())
-                """, (str(uuid.uuid4()), title, content,
-                      ','.join(image_urls) if image_urls else None))
+                INSERT INTO news_feed (id, type, title, content, image_url, 
+                                       event_date, event_location,
+                                       published_at, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW(), NOW())
+            """, (str(uuid.uuid4()), news_type, title, content,
+                  ','.join(image_urls) if image_urls else None,
+                  event_date, event_location))
 
             conn.commit()
             log_action(session['user_id'], 'add_news', f'{news_type}: {title}')
@@ -1285,7 +1201,6 @@ def admin_add_news():
             cur.close()
             conn.close()
 
-    # GET запрос - показываем форму
     return render_template('admin/add_news.html')
 
 
@@ -1520,7 +1435,8 @@ def logout():
     flash('Вы вышли из системы.', 'info')
     return redirect(url_for('login'))
 
-#апишка
+
+# ----- API -----
 def api_login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -1529,10 +1445,10 @@ def api_login_required(f):
             return f(*args, **kwargs)
         except:
             return jsonify({"error": "Требуется авторизация (JWT)"}), 401
+
     return decorated
 
 
-#маршруты апи
 @app.route('/api/v1/register', methods=['POST'])
 def api_register():
     data = request.get_json() or {}
@@ -1562,7 +1478,7 @@ def api_register():
             VALUES (%s, %s, %s, %s, %s, %s, %s, 'student', TRUE, FALSE, NOW(), NOW())
             RETURNING id
         """, (user_id, email, hashed, first_name, last_name, course, group_number))
-        
+
         cur.execute("""
             INSERT INTO students (user_id, student_id, course, created_at, updated_at)
             VALUES (%s, %s, %s, NOW(), NOW())
@@ -1659,6 +1575,7 @@ def api_get_projects():
     finally:
         cur.close()
         conn.close()
+
 
 @app.route('/api/v1/projects', methods=['POST'])
 @api_login_required
@@ -1763,6 +1680,7 @@ def api_create_project():
     finally:
         cur.close()
         conn.close()
+
 
 # ----- Запуск -----
 if __name__ == '__main__':
