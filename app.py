@@ -29,11 +29,15 @@ DB_CONFIG = {
     'client_encoding': 'UTF8'
 }
 
-UPLOAD_FOLDER = 'static/uploads'
-AVATAR_FOLDER = 'static/avatars'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
+AVATAR_FOLDER = os.path.join(BASE_DIR, 'static', 'avatars')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['AVATAR_FOLDER'] = AVATAR_FOLDER
+
+# Создаём папки с абсолютными путями
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(AVATAR_FOLDER, exist_ok=True)
 
