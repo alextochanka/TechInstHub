@@ -2,9 +2,16 @@
 {% block title %}Управление пользователями{% endblock %}
 {% block hero_title %}Пользователи{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-24">
-    <a href="{{ url_for('admin_add_user') }}" class="ui-button primary m">+ Добавить пользователя</a>
+<div class="ui-vstack gap-24 max-w-lg mx-auto">
+    <!-- Кнопка добавления — такая же, как в админке новостей -->
+    <div class="ui-hstack gap-16">
+        <a href="{{ url_for('admin_add_user') }}" class="ui-button primary m" style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 20px; font-weight: 600;">+</span> Добавить пользователя
+        </a>
+    </div>
+    
     <div class="ui-vstack gap-16">
+        <h3 class="ui-heading s">Существующие пользователи</h3>
         {% for user in users %}
         <div class="user-card">
             <div class="user-info">

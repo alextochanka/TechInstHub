@@ -2,15 +2,24 @@
 {% block title %}Логи системы{% endblock %}
 {% block hero_title %}Логи{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-16">
+<div class="ui-vstack gap-16 max-w-3xl mx-auto">
     {% for log in logs %}
-    <div class="log-item">
-        <div class="ui-text semibold">{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }} – {{ log.action }}</div>
-        <div class="ui-text gray">Пользователь: {{ log.user_id or 'система' }}</div>
-        <div class="ui-text xs">{{ log.details or '' }}</div>
+    <div class="log-item" style="background: #f8fafc; border-radius: 24px; padding: 20px; border: 1px solid #e2e8f0;">
+        <div class="ui-hstack gap-16 align-center" style="justify-content: space-between; flex-wrap: wrap;">
+            <div class="ui-text semibold" style="color: #1e293b;">{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</div>
+            <div class="ui-text semibold" style="background: #e2e8f0; padding: 4px 12px; border-radius: 20px; font-size: 13px;">{{ log.action }}</div>
+        </div>
+        <div class="ui-text gray mt-3" style="margin-top: 12px;">
+            Пользователь: <span class="semibold">{{ log.user_id or 'система' }}</span>
+        </div>
+        {% if log.details %}
+        <div class="ui-text xs gray mt-2" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+            📝 {{ log.details }}
+        </div>
+        {% endif %}
     </div>
     {% else %}
-    <div class="ui-text gray center">Логов нет</div>
+    <div class="ui-text gray center" style="text-align: center; padding: 40px;">Логов нет</div>
     {% endfor %}
 </div>
 {% endblock %}

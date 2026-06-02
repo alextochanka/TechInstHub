@@ -25,7 +25,6 @@
                 <div class="ui-text xs gray">📅 {{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</div>
             </div>
             <div class="ui-hstack gap-8">
-                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-button outline xs" target="_blank">Просмотр</a>
                 <a href="{{ url_for('admin_delete_project', project_id=project.id) }}" 
                    class="ui-button error s" 
                    data-confirm="Удалить проект «{{ project.title }}»? Все данные будут удалены безвозвратно.">
