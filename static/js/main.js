@@ -365,7 +365,7 @@ function initProjectPageStorage() {
     });
 }
 
-// Инициализация галереи изображений проекта
+// Инициализация галереи изображений проекта (улучшенная версия)
 function initProjectGallery() {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('modalImage');
@@ -373,23 +373,68 @@ function initProjectGallery() {
     
     if (!modal || !modalImg) return;
     
-    document.querySelectorAll('.project-detail-image-thumb, .project-detail-image').forEach(img => {
-        img.addEventListener('click', () => {
-            modal.style.display = 'block';
-            modalImg.src = img.src;
-        });
-    });
-    
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
+    // Функция открытия модального окна
+    function openModal(imageSrc) {
+        modal.style.display = 'flex';
+        modalImg.src = imageSrc;
+        document.body.style.overflow = 'hidden'; // Блокируем скролл страницы
     }
     
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
+    // Функция закрытия модального окна
+    function closeModal() {
+        modal.style.display = 'none';
+        modalImg.src = '';
+        document.body.style.overflow = ''; // Возвращаем скролл
+    }
+    
+    // Навешиваем обработчики на все изображения проекта
+    document.querySelectorAll('.project-detail-image-thumb, .project-detail-image').forEach(img => {
+        // Убираем старый обработчик, если был
+        img.removeEventListener('click', img._galleryHandler);
+        
+        // Создаём новый обработчик
+        const handler = function(e) {
+            e.stopPropagation();
+            openModal(this.src);
+        };
+        
+        img._galleryHandler = handler;
+        img.addEventListener('click', handler);
+        
+        // Добавляем курсор-указатель для интерактивности
+        img.style.cursor = 'pointer';
+    });
+    
+    // Закрытие по крестику
+    if (closeBtn) {
+        closeBtn.removeEventListener('click', closeBtn._closeHandler);
+        closeBtn._closeHandler = closeModal;
+        closeBtn.addEventListener('click', closeBtn._closeHandler);
+    }
+    
+    // Закрытие по клику на фон
+    modal.removeEventListener('click', modal._bgHandler);
+    modal._bgHandler = function(event) {
+        if (event.target === modal) {
+            closeModal();
         }
+    };
+    modal.addEventListener('click', modal._bgHandler);
+    
+    // Закрытие по клавише Escape
+    function handleEscape(e) {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeModal();
+        }
+    }
+    
+    document.removeEventListener('keydown', document._escapeHandler);
+    document._escapeHandler = handleEscape;
+    document.addEventListener('keydown', document._escapeHandler);
+    
+    // Плавающие подсказки для изображений
+    document.querySelectorAll('.project-detail-image-thumb').forEach(img => {
+        img.setAttribute('title', 'Нажмите для увеличения');
     });
 }
 
@@ -749,6 +794,51 @@ notificationStyles.textContent = `
     body.loaded .content {
         animation: fadeInUp 0.4s ease;
     }
+    
+    /* Анимация для карточек проекта */
+    .project-card, .rec-card, .service-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .project-card:hover, .rec-card:hover, .service-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -12px rgba(0,0,0,0.15);
+    }
+    
+    /* Анимация для изображений в галерее */
+    .project-detail-image-thumb {
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    
+    .project-detail-image-thumb:hover {
+        transform: scale(1.05);
+        border-color: #2563eb !important;
+    }
+    
+    /* Анимация для модального окна */
+    .modal {
+        animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    #modalImage {
+        animation: zoomIn 0.2s ease;
+    }
+    
+    @keyframes zoomIn {
+        from {
+            transform: scale(0.9);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
 `;
 document.head.appendChild(notificationStyles);
 
@@ -790,7 +880,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initProjectPageStorage();
     initAvatarPreview();
     initChatAttachments();
-    initProjectGallery();
     initRatingStars();
     
     // Новые функции
@@ -809,6 +898,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Удаление изображений проекта
     initDeleteProjectImage();
+
+    // Инициализация галереи проекта (ВАЖНО: добавлена!)
+    initProjectGallery();
 
     // Инициализация карточек на главной странице
     initHomeCards();
@@ -847,5 +939,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // Экспорт функций для использования в других скриптах
 window.TechInstHub = {
     showNotification,
-    validatePasswordStrength
+    validatePasswordStrength,
+    initProjectGallery
 };
