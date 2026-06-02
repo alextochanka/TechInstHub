@@ -2,80 +2,162 @@
 {% block title %}{{ project.title }}{% endblock %}
 {% block hero_title %}{{ project.title }}{% endblock %}
 {% block content %}
-<div class="project-detail-container">
+<div class="project-detail-container" style="max-width: 900px; margin: 0 auto;">
+    
+    <!-- Изображения проекта -->
     {% if project_images and project_images|length > 0 %}
-    <div class="project-images-grid">
+    <div class="project-images-grid" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px;">
         {% for img_url in project_images %}
-        <img src="{{ url_for('static', filename=img_url) }}" class="project-detail-image-thumb" alt="Изображение проекта">
+        <img src="{{ url_for('static', filename=img_url) }}" 
+             class="project-detail-image-thumb" 
+             style="width: 100px; height: 100px; object-fit: cover; border-radius: 16px; border: 2px solid #eef2f6;">
         {% endfor %}
     </div>
     {% elif project.image_url %}
-    <img src="{{ url_for('static', filename=project.image_url) }}" class="project-detail-image" alt="{{ project.title }}">
+    <img src="{{ url_for('static', filename=project.image_url) }}" 
+         class="project-detail-image" 
+         style="width: 100%; max-height: 300px; object-fit: cover; border-radius: 24px; margin-bottom: 32px;">
     {% endif %}
     
     <!-- Модальное окно для увеличения изображения -->
-    <div id="imageModal" class="modal">
+    <div id="imageModal" class="modal" style="display: none;">
         <span class="modal-close">&times;</span>
         <img id="modalImage">
     </div>
     
-    <div class="project-detail-section">
-        <div class="project-detail-label">Описание</div>
-        <p class="project-detail-text">{{ project.description or '—' }}</p>
+    <!-- Статус проекта -->
+    <div style="margin-bottom: 32px;">
+        {% if project.status == 'открыт' %}
+        <span class="status-badge open">✅ Открыт</span>
+        {% else %}
+        <span class="status-badge closed">🏁 Завершён</span>
+        {% endif %}
     </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Требования</div>
-        <p class="project-detail-text">{{ project.requirements or '—' }}</p>
-    </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Задачи</div>
-        <p class="project-detail-text">{{ project.details or '—' }}</p>
-    </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Тема</div>
-        <p class="project-detail-text">{{ project.topic_name or '—' }}</p>
-    </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Сложность</div>
-        <p class="project-detail-text">{{ project.difficulty or '—' }}</p>
-    </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Срок</div>
-        <p class="project-detail-text">{{ project.deadline or '—' }}</p>
-    </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Преподаватель</div>
-        <div class="flex items-center gap-2">
-            {% if project.tutor_avatar %}
-            <img src="{{ url_for('static', filename=project.tutor_avatar) }}" class="avatar-sm" alt="{{ project.tutor_name }}">
-            {% endif %}
-            <p class="project-detail-text semibold">{{ project.tutor_name }} {{ project.tutor_surname }}</p>
+    
+    <!-- Карточка с основной информацией -->
+    <div class="project-detail-card">
+        
+        <!-- Описание -->
+        <div class="project-detail-section">
+            <div class="project-detail-section-header">
+                <span class="project-detail-section-icon">📝</span>
+                <div class="project-detail-section-title">Описание</div>
+            </div>
+            <p class="project-detail-section-text">{{ project.description or '—' }}</p>
+        </div>
+        
+        <!-- Требования -->
+        <div class="project-detail-section">
+            <div class="project-detail-section-header">
+                <span class="project-detail-section-icon">📋</span>
+                <div class="project-detail-section-title">Требования</div>
+            </div>
+            <p class="project-detail-section-text">{{ project.requirements or '—' }}</p>
+        </div>
+        
+        <!-- Задачи -->
+        <div class="project-detail-section">
+            <div class="project-detail-section-header">
+                <span class="project-detail-section-icon">🎯</span>
+                <div class="project-detail-section-title">Задачи</div>
+            </div>
+            <p class="project-detail-section-text">{{ project.details or '—' }}</p>
         </div>
     </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Максимум студентов</div>
-        <p class="project-detail-text">{{ project.max_students or 1 }}</p>
+    
+    <!-- Детальная информация (сетка 2 колонки) -->
+    <div class="project-detail-info-grid">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            
+            <!-- Тема -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">🏷️</span>
+                <div>
+                    <div class="project-detail-info-label">Тема</div>
+                    <div class="project-detail-info-value">{{ project.topic_name or '—' }}</div>
+                </div>
+            </div>
+            
+            <!-- Сложность -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">⚡</span>
+                <div>
+                    <div class="project-detail-info-label">Сложность</div>
+                    <div>
+                        {% if project.difficulty == 'легкий' %}
+                        <span class="difficulty-badge easy">🌿 Лёгкий</span>
+                        {% elif project.difficulty == 'средний' %}
+                        <span class="difficulty-badge medium">⚖️ Средний</span>
+                        {% elif project.difficulty == 'сложный' %}
+                        <span class="difficulty-badge hard">🔥 Сложный</span>
+                        {% else %}
+                        <span class="project-detail-info-value">{{ project.difficulty or '—' }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Срок -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">📅</span>
+                <div>
+                    <div class="project-detail-info-label">Срок</div>
+                    <div class="project-detail-info-value">{{ project.deadline or '—' }}</div>
+                </div>
+            </div>
+            
+            <!-- Максимум студентов -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">👥</span>
+                <div>
+                    <div class="project-detail-info-label">Максимум студентов</div>
+                    <div class="project-detail-info-value">{{ project.max_students or 1 }}</div>
+                </div>
+            </div>
+            
+            <!-- Дата создания -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">🕒</span>
+                <div>
+                    <div class="project-detail-info-label">Дата создания</div>
+                    <div class="project-detail-info-value">{{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</div>
+                </div>
+            </div>
+            
+            <!-- Преподаватель -->
+            <div class="project-detail-info-item">
+                <span class="project-detail-info-icon">👨‍🏫</span>
+                <div>
+                    <div class="project-detail-info-label">Преподаватель</div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        {% if project.tutor_avatar %}
+                        <img src="{{ url_for('static', filename=project.tutor_avatar) }}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
+                        {% endif %}
+                        <span class="project-detail-info-value">{{ project.tutor_name }} {{ project.tutor_surname }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="project-detail-section">
-        <div class="project-detail-label">Дата создания</div>
-        <p class="project-detail-text">{{ project.created_at.strftime('%d.%m.%Y') if project.created_at else '—' }}</p>
-    </div>
+    
+    <!-- Кнопка действия -->
     {% if session.role == 'student' %}
         {% if project.status == 'открыт' %}
             {% if has_accepted_application %}
-                <form method="post" action="{{ url_for('complete_project', project_id=project.id) }}">
-                    <button type="submit" class="ui-button success m">Завершить проект</button>
+                <form method="post" action="{{ url_for('complete_project', project_id=project.id) }}" class="action-button">
+                    <button type="submit" class="action-button-success">✅ Завершить проект</button>
                 </form>
             {% else %}
-                <form method="post" action="{{ url_for('apply_project', project_id=project.id) }}">
-                    <button type="submit" class="ui-button primary m">Подать заявку</button>
+                <form method="post" action="{{ url_for('apply_project', project_id=project.id) }}" class="action-button">
+                    <button type="submit" class="action-button-primary">📝 Подать заявку</button>
                 </form>
             {% endif %}
         {% else %}
-            <div class="project-detail-warning">
-                ⚠️ Проект уже завершён
+            <div class="project-closed-warning">
+                ⚠️ Проект уже завершён. Заявки не принимаются.
             </div>
         {% endif %}
     {% endif %}
+    
 </div>
 {% endblock %}

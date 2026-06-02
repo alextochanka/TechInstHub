@@ -4,32 +4,76 @@
 {% block content %}
 <div class="catalog-layout">
     <div class="catalog-projects">
-        <div class="scrollable-row">
+        <!-- Сетка проектов вместо скролла -->
+        <div class="projects-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
             {% for project in projects %}
-            <div class="project-card">
+            <div class="project-card" style="background: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #eef2f6; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s, box-shadow 0.2s;">
+                <!-- Изображение -->
                 {% if project.image_url %}
-                <img src="{{ url_for('static', filename=project.image_url) }}" class="project-card-img">
+                <img src="{{ url_for('static', filename=project.image_url) }}" class="project-card-img" style="width: 100%; height: 180px; object-fit: cover;">
                 {% else %}
-                <div class="project-card-img-placeholder">
+                <div class="project-card-img-placeholder" style="width: 100%; height: 180px; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
                     <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="48" height="48" alt="Нет фото">
                 </div>
                 {% endif %}
-                <div>
-                    <div class="project-deadline">
-                        <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="16" height="16"> срок: {{ project.deadline if project.deadline else '—' }}
+                
+                <!-- Контент карточки -->
+                <div style="padding: 20px;">
+                    <!-- Срок и сложность -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div class="project-deadline" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b;">
+                            <img src="{{ url_for('static', filename='icons/calendar.svg') }}" width="14" height="14"> 
+                            {{ project.deadline if project.deadline else '—' }}
+                        </div>
+                        <div class="project-difficulty">
+                            {% if project.difficulty == 'легкий' %}
+                            <span style="background: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">🌿 Лёгкий</span>
+                            {% elif project.difficulty == 'средний' %}
+                            <span style="background: #fef3c7; color: #b45309; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">⚖️ Средний</span>
+                            {% elif project.difficulty == 'сложный' %}
+                            <span style="background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">🔥 Сложный</span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="ui-heading s primary mt-2 mb-1">{{ project.title }}</div>
-                    <p class="ui-text s gray">{{ project.description[:100] if project.description else '' }}{% if project.description and project.description|length > 100 %}...{% endif %}</p>
-                    <div class="ui-text s semibold">преподаватель: {{ project.name }} {{ project.surname }}</div>
-                    <div class="ui-text xs">👥 Мест: {{ project.accepted_count|default(0) }} / {{ project.max_students }}</div>
-                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-link primary">Подробнее</a>
+                    
+                    <!-- Название -->
+                    <div class="ui-heading s" style="margin: 0 0 8px 0; color: #0f172a; font-size: 18px; font-weight: 600;">{{ project.title }}</div>
+                    
+                    <!-- Описание -->
+                    <p class="ui-text gray" style="font-size: 13px; line-height: 1.5; color: #475569; margin-bottom: 16px;">
+                        {{ project.description[:80] if project.description else '' }}{% if project.description and project.description|length > 80 %}...{% endif %}
+                    </p>
+                    
+                    <!-- Разделитель -->
+                    <hr style="margin: 12px 0; border: none; border-top: 1px solid #f1f5f9;">
+                    
+                    <!-- Преподаватель -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <span style="font-size: 14px;">👨‍🏫</span>
+                        <span class="ui-text semibold" style="font-size: 13px; color: #334155;">{{ project.name }} {{ project.surname }}</span>
+                    </div>
+                    
+                    <!-- Места и кнопка -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 14px;">👥</span>
+                            <span class="ui-text" style="font-size: 13px;">
+                                Мест: <span style="font-weight: 600; color: #2563eb;">{{ project.accepted_count|default(0) }}</span> / {{ project.max_students }}
+                            </span>
+                        </div>
+                        <a href="{{ url_for('project_detail', project_id=project.id) }}" class="ui-link primary" style="font-size: 14px; font-weight: 500; color: #2563eb; text-decoration: none; padding: 8px 16px; background: #eff6ff; border-radius: 40px;">
+                            Подробнее →
+                        </a>
+                    </div>
                 </div>
             </div>
             {% else %}
-            <div class="ui-text gray center">Нет проектов</div>
+            <div class="ui-text gray center" style="text-align: center; padding: 60px; grid-column: 1 / -1;">Нет проектов</div>
             {% endfor %}
         </div>
     </div>
+    
+    <!-- Фильтры (оставляем как есть) -->
     <div class="catalog-filters">
         <div class="ui-heading s blue">Фильтры</div>
         <div class="filters-form">
@@ -62,9 +106,9 @@
             </div>
             <div class="filter-group">
                 <div class="ui-text semibold">Сложность</div>
-                <label><input type="radio" name="complexity" value="сложный" {% if selected_complexity == 'сложный' %}checked{% endif %}> сложный</label>
-                <label><input type="radio" name="complexity" value="средний" {% if selected_complexity == 'средний' %}checked{% endif %}> средний</label>
-                <label><input type="radio" name="complexity" value="легкий" {% if selected_complexity == 'легкий' or not selected_complexity %}checked{% endif %}> лёгкий</label>
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><input type="radio" name="complexity" value="сложный" {% if selected_complexity == 'сложный' %}checked{% endif %}> 🔥 сложный</label>
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;"><input type="radio" name="complexity" value="средний" {% if selected_complexity == 'средний' %}checked{% endif %}> ⚖️ средний</label>
+                <label style="display: flex; align-items: center; gap: 8px;"><input type="radio" name="complexity" value="легкий" {% if selected_complexity == 'легкий' or not selected_complexity %}checked{% endif %}> 🌿 лёгкий</label>
             </div>
             <button id="applyFiltersBtn" class="ui-button primary m w-full mt-4">Применить фильтры</button>
         </div>
