@@ -1540,20 +1540,27 @@ def api_login():
         conn.close()
 
 
-@app.route('/api/v1/profile', methods=['GET'])
+@app.route('/api/v1/profile', methods=['GET'], strict_slashes=False)
 @api_login_required
 def api_profile():
     user_id = get_jwt_identity()
+    print(f"[PROFILE] JWT user_id: {user_id}")
+    
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute("""
-            SELECT id, email, first_name, last_name, role, about, avatar_url, 
+            SELECT id, email, first_name, last_name, role, about, avatar_url,
                    created_at, course, group_number
             FROM users WHERE id = %s
         """, (user_id,))
         user = cur.fetchone()
-        return jsonify(dict(user)) if user else jsonify({"error": "User not found"}), 404
+        
+        if user:
+            return jsonify(dict(user)), 200
+        else:
+            return jsonify({"error": "User not found"}), 404
+            
     finally:
         cur.close()
         conn.close()
