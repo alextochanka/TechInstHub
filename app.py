@@ -1453,99 +1453,12 @@ def api_login_required(f):
     return decorated
 
 
-@app.route('/api/v1/register', methods=['POST'])
-def api_register():
-    data = request.get_json() or {}
-    first_name = data.get("first_name") or data.get("name")
-    last_name = data.get("last_name") or data.get("surname")
-    email = data.get("email")
-    password = data.get("password")
-    course = data.get("course")
-    group_number = data.get("group_number")
-
-    if not email or not password:
-        return jsonify({"error": "Email и пароль обязательны"}), 400
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
-        if cur.fetchone():
-            return jsonify({"error": "Пользователь с таким email уже существует"}), 409
-
-        hashed = generate_password_hash(password)
-        user_id = str(uuid.uuid4())
-
-        cur.execute("""
-            INSERT INTO users (id, email, password_hash, first_name, last_name, 
-                             course, group_number, role, is_active, is_verified, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'student', TRUE, FALSE, NOW(), NOW())
-            RETURNING id
-        """, (user_id, email, hashed, first_name, last_name, course, group_number))
-
-        cur.execute("""
-            INSERT INTO students (user_id, student_id, course, created_at, updated_at)
-            VALUES (%s, %s, %s, NOW(), NOW())
-        """, (user_id, f"STU{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:4]}", course))
-
-        conn.commit()
-
-        token = create_access_token(identity=user_id)
-        return jsonify({
-            "message": "Регистрация успешна",
-            "token": token,
-            "user": {
-                "id": user_id,
-                "email": email,
-                "first_name": first_name,
-                "last_name": last_name,
-                "role": "student"
-            }
-        }), 201
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        conn.close()
-
-
-@app.route('/api/v1/login', methods=['POST'])
-def api_login():
-    data = request.get_json() or {}
-    email = data.get("email")
-    password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"error": "Email и пароль обязательны"}), 400
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT id, password_hash, role FROM users WHERE email = %s", (email,))
-        user = cur.fetchone()
-        if not user or not check_password_hash(user['password_hash'], password):
-            return jsonify({"error": "Неверные данные"}), 401
-
-        token = create_access_token(identity=str(user['id']))
-        return jsonify({
-            "message": "Вход выполнен",
-            "token": token,
-            "role": user['role']
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        conn.close()
-
-
 @app.route('/api/v1/profile', methods=['GET'], strict_slashes=False)
 @api_login_required
 def api_profile():
     user_id = get_jwt_identity()
     print(f"[PROFILE] JWT user_id: {user_id}")
-    
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -1555,139 +1468,57 @@ def api_profile():
             FROM users WHERE id = %s
         """, (user_id,))
         user = cur.fetchone()
-        
+
         if user:
             return jsonify(dict(user)), 200
         else:
             return jsonify({"error": "User not found"}), 404
-            
+
     finally:
         cur.close()
         conn.close()
 
 
-@app.route('/api/v1/projects', methods=['GET'])
-def api_get_projects():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT p.id, p.title, p.description, p.difficulty, p.deadline, p.status,
-                   p.max_students, u.first_name || ' ' || u.last_name as tutor_name,
-                   (SELECT image_url FROM images WHERE entity_type='project' 
-                    AND entity_id=p.id ORDER BY sort_order LIMIT 1) as image_url
-            FROM projects p
-            JOIN users u ON p.id_tutor = u.id
-            WHERE p.status = 'открыт'
-            ORDER BY p.created_at DESC
-        """)
-        projects = cur.fetchall()
-        return jsonify([dict(p) for p in projects])
-    finally:
-        cur.close()
-        conn.close()
-
-
-@app.route('/api/v1/projects', methods=['POST'])
+@app.route('/api/v1/profile', methods=['PATCH'], strict_slashes=False)
 @api_login_required
-def api_create_project():
+def api_update_profile():
     user_id = get_jwt_identity()
 
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
-        user_role = cur.fetchone()
-        if not user_role or user_role['role'] not in ('teacher', 'admin'):
-            return jsonify({"error": "Только преподаватели могут создавать проекты"}), 403
-    finally:
-        cur.close()
-        conn.close()
+    data = request.get_json(silent=True) or {}
+    about = data.get('about')
 
-    if request.is_json:
-        data = request.get_json() or {}
-    else:
-        data = request.form.to_dict()
+    if about is None:
+        return jsonify({"error": "Поле 'about' обязательно"}), 400
 
-    title = data.get('title')
-    description = data.get('description')
-    requirements = data.get('requirements', '')
-    details = data.get('details', '')
-    topic_id = data.get('topic_id')
-    difficulty = data.get('difficulty', 'средний')
-    deadline = data.get('deadline')
-    max_students = data.get('max_students', 1)
+    if not isinstance(about, str):
+        return jsonify({"error": "Поле 'about' должно быть строкой"}), 400
 
-    if not title or not description:
-        return jsonify({"error": "title и description обязательны"}), 400
-
-    try:
-        max_students = int(max_students)
-        if max_students < 1:
-            max_students = 1
-    except:
-        max_students = 1
-
-    project_id = str(uuid.uuid4())
+    if len(about) > 500:
+        return jsonify({"error": "Поле 'about' не может быть длиннее 500 символов"}), 400
 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
         cur.execute("""
-            INSERT INTO projects (
-                id, id_tutor, title, description, requirements, details,
-                topic_id, difficulty, deadline, status, max_students,
-                created_at, updated_at
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, 'открыт', %s, NOW(), NOW()
-            )
-            RETURNING id, title, description, difficulty, deadline, max_students, status
-        """, (
-            project_id, user_id, title, description, requirements, details,
-            topic_id, difficulty, deadline, max_students
-        ))
+            UPDATE users 
+            SET about = %s 
+            WHERE id = %s
+            RETURNING id, email, first_name, last_name, role, about, 
+                      avatar_url, created_at, course, group_number
+        """, (about.strip(), user_id))
 
-        new_project = cur.fetchone()
+        updated_user = cur.fetchone()
 
-        if request.files:
-            images = request.files.getlist('images')
-            for idx, img in enumerate(images):
-                if img and allowed_file(img.filename):
-                    filename = secure_filename(img.filename)
-                    unique_name = f"{uuid.uuid4().hex}_{filename}"
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                    img.save(filepath)
-                    image_url = f"uploads/{unique_name}"
-
-                    cur.execute("""
-                        INSERT INTO images (
-                            id, entity_type, entity_id, image_url, image_type, 
-                            sort_order, is_active, created_at, updated_at
-                        ) VALUES (%s, 'project', %s, %s, 'main', %s, TRUE, NOW(), NOW())
-                    """, (str(uuid.uuid4()), project_id, image_url, idx))
-
-        conn.commit()
-        log_action(user_id, 'add_project', f'Создан проект через API: {title}')
-
-        return jsonify({
-            "message": "Проект успешно создан",
-            "project": {
-                "id": new_project['id'],
-                "title": new_project['title'],
-                "description": new_project['description'],
-                "difficulty": new_project['difficulty'],
-                "deadline": new_project['deadline'],
-                "max_students": new_project['max_students'],
-                "status": new_project['status']
-            }
-        }), 201
+        if updated_user:
+            conn.commit()
+            return jsonify(dict(updated_user)), 200
+        else:
+            return jsonify({"error": "Пользователь не найден"}), 404
 
     except Exception as e:
         conn.rollback()
-        print("=== API CREATE PROJECT ERROR ===")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": "Ошибка при создании проекта", "details": str(e)}), 500
+        print(f"[ERROR] Profile update: {e}")
+        return jsonify({"error": "Внутренняя ошибка сервера"}), 500
     finally:
         cur.close()
         conn.close()
