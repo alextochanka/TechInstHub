@@ -2,61 +2,64 @@
 {% block title %}Добавить публикацию{% endblock %}
 {% block hero_title %}Новая публикация{% endblock %}
 {% block content %}
-<form method="post" enctype="multipart/form-data" class="ui-vstack gap-24 max-w-lg mx-auto" id="addNewsForm" action="{{ url_for('admin_add_news') }}">
-    <div class="filter-group">
+<form method="post" enctype="multipart/form-data" class="add-news-form" id="addNewsForm" action="{{ url_for('admin_add_news') }}">
+    <div class="form-row">
         <label class="ui-text semibold">Тип публикации</label>
-        <select name="news_type" id="newsType" required class="ui-input w-full">
+        <select name="news_type" id="newsType" required class="ui-input">
             <option value="news">📰 Новость</option>
             <option value="internship">💼 Стажировка</option>
             <option value="event">🎉 Мероприятие</option>
         </select>
     </div>
     
-    <div class="filter-group">
+    <div class="form-row">
         <label class="ui-text semibold">Заголовок</label>
-        <input type="text" name="title" required class="ui-input w-full">
+        <input type="text" name="title" required class="ui-input" placeholder="Введите заголовок">
     </div>
     
-    <div class="filter-group">
+    <div class="form-row">
         <label class="ui-text semibold">Содержание</label>
-        <textarea name="content" rows="6" required class="ui-input w-full"></textarea>
+        <textarea name="content" rows="6" required class="ui-input" placeholder="Введите текст публикации"></textarea>
     </div>
     
-    <!-- Поля только для мероприятий (по умолчанию скрыты) -->
-    <div id="eventFields" style="display: none;">
-        <div class="filter-group">
+    <!-- Поля только для мероприятий -->
+    <div id="eventFields" class="extra-fields" style="display: none;">
+        <div class="form-row">
             <label class="ui-text semibold">Дата мероприятия</label>
-            <input type="date" name="event_date" class="ui-input w-full">
+            <input type="date" name="event_date" class="ui-input">
         </div>
-        <div class="filter-group">
+        <div class="form-row">
             <label class="ui-text semibold">Место проведения</label>
-            <input type="text" name="event_location" class="ui-input w-full" placeholder="Онлайн / Адрес">
+            <input type="text" name="event_location" class="ui-input" placeholder="Онлайн / Адрес">
         </div>
     </div>
     
-    <!-- Поля только для стажировок (по умолчанию скрыты) -->
-    <div id="internshipFields" style="display: none;">
-        <div class="filter-group">
+    <!-- Поля только для стажировок -->
+    <div id="internshipFields" class="extra-fields" style="display: none;">
+        <div class="form-row">
             <label class="ui-text semibold">Компания</label>
-            <input type="text" name="company" class="ui-input w-full" placeholder="Название компании">
+            <input type="text" name="company" class="ui-input" placeholder="Название компании">
         </div>
-        <div class="filter-group">
+        <div class="form-row">
             <label class="ui-text semibold">Локация</label>
-            <input type="text" name="location" class="ui-input w-full" placeholder="Город / Удалённо">
+            <input type="text" name="location" class="ui-input" placeholder="Город / Удалённо">
         </div>
-        <div class="filter-group">
+        <div class="form-row">
             <label class="ui-text semibold">Длительность</label>
-            <input type="text" name="duration" class="ui-input w-full" placeholder="3 месяца / 6 месяцев">
+            <input type="text" name="duration" class="ui-input" placeholder="3 месяца / 6 месяцев">
         </div>
     </div>
     
-    <div class="filter-group">
+    <div class="form-row">
         <label class="ui-text semibold">Изображения</label>
-        <input type="file" name="images" id="newsImages" accept="image/*" multiple class="ui-input w-full">
-        <div id="newsImagesPreview" class="image-upload-grid mt-2"></div>
-        <small class="ui-text xs gray">Можно выбрать несколько изображений</small>
+        <input type="file" name="images" id="newsImages" accept="image/*" multiple class="ui-input">
+        <div id="newsImagesPreview" class="image-upload-grid"></div>
+        <small class="ui-text xs gray">Можно выбрать несколько изображений (JPG, PNG)</small>
     </div>
     
-    <button type="submit" class="ui-button primary m">Опубликовать</button>
+    <div class="form-actions">
+        <button type="submit" class="ui-button primary m">Опубликовать</button>
+        <a href="{{ url_for('admin_news_list') }}" class="ui-button outline m">Отмена</a>
+    </div>
 </form>
 {% endblock %}

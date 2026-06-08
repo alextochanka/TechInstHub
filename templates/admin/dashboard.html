@@ -2,45 +2,98 @@
 {% block title %}Админ-панель — TechInstHub{% endblock %}
 {% block hero_title %}Администрирование{% endblock %}
 {% block content %}
-<div class="ui-vstack gap-32">
-    <div class="ui-heading m blue">Статистика платформы</div>
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ users_cnt }}</div>
-            <div class="ui-text gray">Пользователей</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ projects_cnt }}</div>
-            <div class="ui-text gray">Проектов</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ apps_cnt }}</div>
-            <div class="ui-text gray">Заявок</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ reviews_cnt }}</div>
-            <div class="ui-text gray">Отзывов</div>
+<div class="admin-dashboard">
+    <!-- Статистика -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ users_cnt }}</div>
+                <div class="stat-label">Пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ projects_cnt }}</div>
+                <div class="stat-label">Проектов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ apps_cnt }}</div>
+                <div class="stat-label">Заявок</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ reviews_cnt }}</div>
+                <div class="stat-label">Отзывов</div>
+            </div>
         </div>
     </div>
-    <div class="admin-actions">
-        <a href="{{ url_for('admin_users') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/users.svg') }}" width="20" height="20"> Управление пользователями
-        </a>
-        <a href="{{ url_for('admin_projects') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="20" height="20"> Все проекты
-        </a>
-        <a href="{{ url_for('admin_topics') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/themes.svg') }}" width="20" height="20"> Темы проектов
-        </a>
-        <a href="{{ url_for('admin_news_list') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/news.svg') }}" width="20" height="20"> Новости
-        </a>
-        <a href="{{ url_for('admin_query') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/sql.svg') }}" width="20" height="20"> SQL-запросы
-        </a>
-        <a href="{{ url_for('admin_logs') }}" class="ui-button outline m action-btn">
-            <img src="{{ url_for('static', filename='icons/logs.svg') }}" width="20" height="20"> Действия в системе
-        </a>
+
+    <!-- Кнопки действий - 3 колонки на больших экранах -->
+    <div class="actions-section">
+        <div class="actions-grid">
+            <a href="{{ url_for('admin_users') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/users.svg') }}" width="28" height="28" alt="Пользователи">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">Пользователи</div>
+                    <div class="action-desc">Управление пользователями системы</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+            
+            <a href="{{ url_for('admin_projects') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/projects.svg') }}" width="28" height="28" alt="Проекты">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">Все проекты</div>
+                    <div class="action-desc">Просмотр и управление проектами</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+            
+            <a href="{{ url_for('admin_topics') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/themes.svg') }}" width="28" height="28" alt="Темы">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">Темы проектов</div>
+                    <div class="action-desc">Добавление и удаление тем</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+            
+            <a href="{{ url_for('admin_news_list') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/news.svg') }}" width="28" height="28" alt="Новости">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">Новости</div>
+                    <div class="action-desc">Управление публикациями</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+            
+            <a href="{{ url_for('admin_query') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/sql.svg') }}" width="28" height="28" alt="SQL">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">SQL-запросы</div>
+                    <div class="action-desc">Выполнение прямых запросов</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+            
+            <a href="{{ url_for('admin_logs') }}" class="admin-action-card">
+                <div class="action-icon">
+                    <img src="{{ url_for('static', filename='icons/logs.svg') }}" width="28" height="28" alt="Логи">
+                </div>
+                <div class="action-info">
+                    <div class="action-title">Действия в системе</div>
+                    <div class="action-desc">Просмотр логов активности</div>
+                </div>
+                <div class="action-arrow">→</div>
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
