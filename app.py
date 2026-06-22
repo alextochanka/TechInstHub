@@ -1723,6 +1723,174 @@ def api_update_profile():
         cur.close()
         conn.close()
 
+@app.route('/api/v1/news', methods=['GET'], strict_slashes=False)
+def api_get_news():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT id,
+                   title,
+                   content AS description,
+                   image_url,
+                   published_at
+            FROM news_feed
+            WHERE type = 'news'
+            ORDER BY COALESCE(published_at, created_at) DESC
+        """)
+        rows = cur.fetchall()
+        return jsonify([dict(r) for r in rows]), 200
+    except Exception as e:
+        print(f"[ERROR] get_news: {e}")
+        return jsonify({"error": "Не удалось загрузить новости"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/v1/reviews/<recipient_id>', methods=['GET'], strict_slashes=False)
+def api_get_reviews(recipient_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT r.id,
+                   r.author_id,
+                   r.rating,
+                   r.comment AS text,
+                   r.created_at,
+                   COALESCE(u.first_name || ' ' || u.last_name, 'Аноним') AS author_name
+            FROM reviews r
+            LEFT JOIN users u ON r.author_id = u.id
+            WHERE r.recipient_id = %s
+            ORDER BY r.created_at DESC
+        """, (recipient_id,))
+        rows = cur.fetchall()
+        return jsonify([dict(r) for r in rows]), 200
+    except Exception as e:
+        print(f"[ERROR] get_reviews: {e}")
+        return jsonify({"error": "Не удалось загрузить отзывы"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/v1/reviews/<recipient_id>', methods=['POST'], strict_slashes=False)
+@api_login_required
+def api_create_or_update_review(recipient_id):
+    author_id = get_jwt_identity()
+
+    # Нельзя оставлять отзыв самому себе
+    if str(author_id) == str(recipient_id):
+        return jsonify({"error": "Нельзя оставить отзыв самому себе"}), 400
+
+    data = request.get_json(silent=True) or {}
+    rating = data.get('rating')
+    text = data.get('text')
+
+    # Валидация рейтинга
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        return jsonify({"error": "rating должен быть целым числом от 1 до 5"}), 400
+
+    if rating < 1 or rating > 5:
+        return jsonify({"error": "rating должен быть от 1 до 5"}), 400
+
+    # Валидация текста
+    if not text or not isinstance(text, str) or not text.strip():
+        return jsonify({"error": "Поле text обязательно"}), 400
+
+    if len(text) > 1000:
+        return jsonify({"error": "Отзыв не может быть длиннее 1000 символов"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id FROM users WHERE id = %s", (recipient_id,))
+        if not cur.fetchone():
+            return jsonify({"error": "Пользователь не найден"}), 404
+            
+        cur.execute("""
+            SELECT id FROM reviews
+            WHERE author_id = %s AND recipient_id = %s
+        """, (author_id, recipient_id))
+        existing = cur.fetchone()
+
+        if existing:
+            cur.execute("""
+                UPDATE reviews
+                SET rating = %s, comment = %s, updated_at = NOW()
+                WHERE id = %s
+                RETURNING id, author_id, rating, comment AS text, created_at
+            """, (rating, text.strip(), existing['id']))
+            status_code = 200
+            log_msg = f'Обновлён отзыв пользователю {recipient_id}'
+        else:
+            review_id = str(uuid.uuid4())
+            cur.execute("""
+                INSERT INTO reviews (id, author_id, recipient_id, rating, comment,
+                                     created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING id, author_id, rating, comment AS text, created_at
+            """, (review_id, author_id, recipient_id, rating, text.strip()))
+            status_code = 201
+            log_msg = f'Создан отзыв пользователю {recipient_id}'
+
+        saved_review = cur.fetchone()
+
+        cur.execute("""
+            SELECT COALESCE(first_name || ' ' || last_name, 'Аноним') AS author_name
+            FROM users WHERE id = %s
+        """, (author_id,))
+        author_row = cur.fetchone()
+
+        conn.commit()
+        log_action(author_id, 'review', log_msg)
+
+        result = dict(saved_review)
+        result['author_name'] = author_row['author_name'] if author_row else 'Аноним'
+
+        return jsonify(result), status_code
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] create_or_update_review: {e}")
+        return jsonify({"error": "Не удалось сохранить отзыв"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/v1/reviews/<recipient_id>', methods=['DELETE'], strict_slashes=False)
+@api_login_required
+def api_delete_review(recipient_id):
+    author_id = get_jwt_identity()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            DELETE FROM reviews
+            WHERE author_id = %s AND recipient_id = %s
+            RETURNING id
+        """, (author_id, recipient_id))
+        deleted = cur.fetchone()
+
+        if not deleted:
+            return jsonify({"error": "Отзыв не найден"}), 404
+
+        conn.commit()
+        log_action(author_id, 'review', f'Удалён отзыв пользователю {recipient_id}')
+        return jsonify({"message": "Отзыв удалён"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] delete_review: {e}")
+        return jsonify({"error": "Не удалось удалить отзыв"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
 
 # ----- Запуск -----
 if __name__ == '__main__':
