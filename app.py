@@ -1678,43 +1678,91 @@ def api_create_project():
         cur.close()
         conn.close()
 
-
 @app.route('/api/v1/profile', methods=['PATCH'], strict_slashes=False)
 @api_login_required
 def api_update_profile():
     user_id = get_jwt_identity()
-
     data = request.get_json(silent=True) or {}
-    about = data.get('about')
+ 
+    set_parts = []
+    values = []
 
-    if about is None:
-        return jsonify({"error": "Поле 'about' обязательно"}), 400
+    if 'about' in data and data['about'] is not None:
+        about = data['about']
+        if not isinstance(about, str):
+            return jsonify({"error": "Поле 'about' должно быть строкой"}), 400
+        if len(about) > 500:
+            return jsonify({"error": "Поле 'about' не может быть длиннее 500 символов"}), 400
+        set_parts.append("about = %s")
+        values.append(about.strip())
 
-    if not isinstance(about, str):
-        return jsonify({"error": "Поле 'about' должно быть строкой"}), 400
+    if 'first_name' in data and data['first_name'] is not None:
+        first_name = data['first_name']
+        if not isinstance(first_name, str) or not first_name.strip():
+            return jsonify({"error": "Поле 'first_name' не может быть пустым"}), 400
+        if len(first_name) > 100:
+            return jsonify({"error": "Имя слишком длинное"}), 400
+        set_parts.append("first_name = %s")
+        values.append(first_name.strip())
 
-    if len(about) > 500:
-        return jsonify({"error": "Поле 'about' не может быть длиннее 500 символов"}), 400
+    if 'last_name' in data and data['last_name'] is not None:
+        last_name = data['last_name']
+        if not isinstance(last_name, str) or not last_name.strip():
+            return jsonify({"error": "Поле 'last_name' не может быть пустым"}), 400
+        if len(last_name) > 100:
+            return jsonify({"error": "Фамилия слишком длинная"}), 400
+        set_parts.append("last_name = %s")
+        values.append(last_name.strip())
+ 
+    if 'course' in data and data['course'] is not None and str(data['course']).strip() != '':
+        try:
+            course = int(data['course'])
+        except (TypeError, ValueError):
+            return jsonify({"error": "Поле 'course' должно быть числом"}), 400
+        set_parts.append("course = %s")
+        values.append(course)
 
+    if 'group_number' in data and data['group_number'] is not None:
+        group_number = str(data['group_number']).strip()
+        if len(group_number) > 50:
+            return jsonify({"error": "Номер группы слишком длинный"}), 400
+        set_parts.append("group_number = %s")
+        values.append(group_number if group_number != '' else None)
+
+    if 'avatar_url' in data and data['avatar_url'] is not None:
+        avatar_url = str(data['avatar_url']).strip()
+        if len(avatar_url) > 500:
+            return jsonify({"error": "avatar_url слишком длинный"}), 400
+        set_parts.append("avatar_url = %s")
+        values.append(avatar_url if avatar_url != '' else None)
+ 
+    if not set_parts:
+        return jsonify({"error": "Нет полей для обновления"}), 400
+ 
+    set_parts.append("updated_at = NOW()")
+ 
+    query = f"""
+        UPDATE users
+        SET {', '.join(set_parts)}
+        WHERE id = %s
+        RETURNING id, email, first_name, last_name, role, about,
+                  avatar_url, created_at, course, group_number
+    """
+    values.append(user_id)
+ 
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("""
-            UPDATE users 
-            SET about = %s 
-            WHERE id = %s
-            RETURNING id, email, first_name, last_name, role, about, 
-                      avatar_url, created_at, course, group_number
-        """, (about.strip(), user_id))
-
+        cur.execute(query, tuple(values))
         updated_user = cur.fetchone()
-
-        if updated_user:
-            conn.commit()
-            return jsonify(dict(updated_user)), 200
-        else:
+ 
+        if not updated_user:
             return jsonify({"error": "Пользователь не найден"}), 404
-
+ 
+        conn.commit()
+        log_action(user_id, 'update_profile', 'Обновлён профиль через API')
+        return jsonify(dict(updated_user)), 200
+ 
     except Exception as e:
         conn.rollback()
         print(f"[ERROR] Profile update: {e}")
@@ -1891,6 +1939,50 @@ def api_delete_review(recipient_id):
         cur.close()
         conn.close()
 
+@app.route('/api/v1/users', methods=['GET'], strict_slashes=False)
+@api_login_required
+def api_list_users():
+    user_id = get_jwt_identity()
+    role_filter = request.args.get('role')
+ 
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if not role_filter:
+            cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+            me = cur.fetchone()
+            my_role = me['role'] if me else 'student'
+            role_filter = 'student' if my_role in ('teacher', 'admin') else 'teacher'
+ 
+        if role_filter not in ('student', 'teacher', 'admin'):
+            return jsonify({"error": "Недопустимая роль"}), 400
+ 
+        cur.execute("""
+            SELECT id,
+                   first_name,
+                   last_name,
+                   COALESCE(first_name || ' ' || last_name, email) AS full_name,
+                   role,
+                   course,
+                   group_number,
+                   avatar_url,
+                   rating
+            FROM users
+            WHERE role = %s
+              AND id <> %s
+              AND is_active = TRUE
+            ORDER BY first_name, last_name
+        """, (role_filter, user_id))
+ 
+        rows = cur.fetchall()
+        return jsonify([dict(r) for r in rows]), 200
+ 
+    except Exception as e:
+        print(f"[ERROR] list_users: {e}")
+        return jsonify({"error": "Не удалось загрузить список пользователей"}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 # ----- Запуск -----
 if __name__ == '__main__':
