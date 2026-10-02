@@ -1587,33 +1587,6 @@ def api_profile():
         cur.close()
         conn.close()
 
-
-@app.route('/api/v1/projects', methods=['GET'])
-def api_get_projects():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT p.id, p.title, p.description, p.requirements, p.details,
-                   p.difficulty, p.deadline, p.status, p.max_students,
-                   p.topic_id,
-                   t.name AS topic,
-                   u.first_name || ' ' || u.last_name AS tutor_name,
-                   (SELECT image_url FROM images WHERE entity_type='project'
-                    AND entity_id=p.id ORDER BY sort_order LIMIT 1) as image_url
-            FROM projects p
-            JOIN users u ON p.id_tutor = u.id
-            LEFT JOIN topics t ON p.topic_id = t.id
-            WHERE p.status = 'открыт'
-            ORDER BY p.created_at DESC
-        """)
-        projects = cur.fetchall()
-        return jsonify([dict(p) for p in projects])
-    finally:
-        cur.close()
-        conn.close()
-
-
 @app.route('/api/v1/projects', methods=['POST'])
 @api_login_required
 def api_create_project():
@@ -2028,6 +2001,290 @@ def api_get_topics():
     finally:
         cur.close()
         conn.close()
+
+def _api_user_role(cur, user_id):
+    """В JWT лежит только id, поэтому роль берём из базы."""
+    cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+    row = cur.fetchone()
+    return row['role'] if row else None
+
+
+def _optional_jwt_user_id():
+    """id пользователя, если запрос пришёл с валидным токеном, иначе None."""
+    try:
+        verify_jwt_in_request(optional=True)
+        return get_jwt_identity()
+    except Exception:
+        return None
+
+_PROJECT_FIELDS_SQL = """
+    p.id, p.title, p.description, p.requirements, p.details,
+    p.difficulty, p.deadline, p.status, p.max_students,
+    p.topic_id,
+    t.name AS topic,
+    p.id_tutor AS tutor_id,
+    u.first_name || ' ' || u.last_name AS tutor_name,
+    (SELECT image_url FROM images WHERE entity_type='project'
+     AND entity_id=p.id ORDER BY sort_order LIMIT 1) AS image_url,
+    (SELECT COUNT(*) FROM applications
+     WHERE project_id = p.id AND status = 'accepted') AS accepted_count,
+    (SELECT COUNT(*) FROM applications
+     WHERE project_id = p.id AND status = 'pending') AS pending_count,
+    (SELECT a.status FROM applications a
+     WHERE a.project_id = p.id AND a.student_id = %s
+     LIMIT 1) AS my_application_status
+"""
+
+@app.route('/api/v1/projects', methods=['GET'])
+def api_get_projects():
+    """Список открытых проектов. Токен необязателен: без него my_application_status = null."""
+    user_id = _optional_jwt_user_id()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"""
+            SELECT {_PROJECT_FIELDS_SQL}
+            FROM projects p
+            JOIN users u ON p.id_tutor = u.id
+            LEFT JOIN topics t ON p.topic_id = t.id
+            WHERE p.status = 'открыт'
+            ORDER BY p.created_at DESC
+        """, (user_id,))
+        projects = cur.fetchall()
+        return jsonify([dict(p) for p in projects])
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/v1/profile/projects', methods=['GET'], strict_slashes=False)
+@api_login_required
+def api_my_projects():
+    """Портфолио: проекты, которые я веду, и проекты, куда меня приняли. Любой статус, включая завершённые."""
+    user_id = get_jwt_identity()
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"""
+            SELECT {_PROJECT_FIELDS_SQL}
+            FROM projects p
+            JOIN users u ON p.id_tutor = u.id
+            LEFT JOIN topics t ON p.topic_id = t.id
+            WHERE p.id_tutor = %s
+               OR EXISTS (SELECT 1 FROM applications a
+                          WHERE a.project_id = p.id
+                            AND a.student_id = %s
+                            AND a.status = 'accepted')
+            ORDER BY p.created_at DESC
+        """, (user_id, user_id, user_id))
+        projects = cur.fetchall()
+        return jsonify([dict(p) for p in projects]), 200
+    except Exception as e:
+        print(f"[ERROR] my_projects: {e}")
+        return jsonify({"error": "Не удалось загрузить проекты"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/v1/projects/<uuid:project_id>/applications', methods=['POST'])
+@api_login_required
+def api_apply_to_project(project_id):
+    """Студент подаёт заявку на проект."""
+    user_id = get_jwt_identity()
+    project_id_str = str(project_id)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if _api_user_role(cur, user_id) != 'student':
+            return jsonify({"error": "Подавать заявки могут только студенты"}), 403
+
+        cur.execute("SELECT status, max_students FROM projects WHERE id = %s", (project_id_str,))
+        project = cur.fetchone()
+        if not project:
+            return jsonify({"error": "Проект не найден"}), 404
+        if project['status'] != 'открыт':
+            return jsonify({"error": "Набор в проект закрыт"}), 409
+
+        cur.execute("""
+            SELECT status FROM applications
+            WHERE project_id = %s AND student_id = %s
+        """, (project_id_str, user_id))
+        existing = cur.fetchone()
+        if existing:
+            return jsonify({"error": "Вы уже подавали заявку на этот проект",
+                            "status": existing['status']}), 409
+
+        cur.execute("""
+            SELECT COUNT(*) AS cnt FROM applications
+            WHERE project_id = %s AND status = 'accepted'
+        """, (project_id_str,))
+        if cur.fetchone()['cnt'] >= (project['max_students'] or 1):
+            return jsonify({"error": "В проекте нет свободных мест"}), 409
+
+        cur.execute("""
+            INSERT INTO applications (id, project_id, student_id, status, applied_at, updated_at)
+            VALUES (%s, %s, %s, 'pending', NOW(), NOW())
+            RETURNING id, status, applied_at
+        """, (str(uuid.uuid4()), project_id_str, user_id))
+        created = cur.fetchone()
+        conn.commit()
+
+        log_action(user_id, 'apply', f'Заявка на проект {project_id} (API)')
+        return jsonify(dict(created)), 201
+
+    except psycopg2.IntegrityError:
+        conn.rollback()
+        return jsonify({"error": "Вы уже подавали заявку на этот проект"}), 409
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] apply_to_project: {e}")
+        return jsonify({"error": "Не удалось отправить заявку"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/v1/projects/<uuid:project_id>/applications', methods=['DELETE'])
+@api_login_required
+def api_withdraw_application(project_id):
+    """Студент отзывает заявку. Только пока она на рассмотрении."""
+    user_id = get_jwt_identity()
+    project_id_str = str(project_id)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            DELETE FROM applications
+            WHERE project_id = %s AND student_id = %s AND status = 'pending'
+            RETURNING id
+        """, (project_id_str, user_id))
+        if cur.fetchone():
+            conn.commit()
+            log_action(user_id, 'withdraw_application', f'Отозвана заявка на проект {project_id} (API)')
+            return jsonify({"message": "Заявка отозвана"}), 200
+
+        cur.execute("""
+            SELECT status FROM applications
+            WHERE project_id = %s AND student_id = %s
+        """, (project_id_str, user_id))
+        if cur.fetchone():
+            return jsonify({"error": "Заявка уже рассмотрена, отозвать её нельзя"}), 409
+        return jsonify({"error": "Заявка не найдена"}), 404
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] withdraw_application: {e}")
+        return jsonify({"error": "Не удалось отозвать заявку"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/v1/projects/<uuid:project_id>/applications', methods=['GET'])
+@api_login_required
+def api_project_applications(project_id):
+    """Заявки на проект. Видит только преподаватель, который его ведёт."""
+    user_id = get_jwt_identity()
+    project_id_str = str(project_id)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id_tutor FROM projects WHERE id = %s", (project_id_str,))
+        project = cur.fetchone()
+        if not project:
+            return jsonify({"error": "Проект не найден"}), 404
+        if str(project['id_tutor']) != str(user_id):
+            return jsonify({"error": "Нет доступа к заявкам этого проекта"}), 403
+
+        cur.execute("""
+            SELECT a.id, a.status, a.applied_at,
+                   u.id AS student_id,
+                   COALESCE(u.first_name || ' ' || u.last_name, u.email) AS student_name,
+                   u.email, u.course, u.group_number, u.avatar_url
+            FROM applications a
+            JOIN users u ON a.student_id = u.id
+            WHERE a.project_id = %s
+            ORDER BY CASE a.status WHEN 'pending' THEN 0 WHEN 'accepted' THEN 1 ELSE 2 END,
+                     a.applied_at
+        """, (project_id_str,))
+        rows = cur.fetchall()
+        return jsonify([dict(r) for r in rows]), 200
+
+    except Exception as e:
+        print(f"[ERROR] project_applications: {e}")
+        return jsonify({"error": "Не удалось загрузить заявки"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route('/api/v1/applications/<uuid:app_id>', methods=['PATCH'])
+@api_login_required
+def api_update_application(app_id):
+    """Преподаватель принимает или отклоняет заявку. Тело: {"status": "accepted" | "rejected"}."""
+    user_id = get_jwt_identity()
+    app_id_str = str(app_id)
+
+    data = request.get_json(silent=True) or {}
+    new_status = data.get('status')
+    if new_status not in ('accepted', 'rejected'):
+        return jsonify({"error": "status должен быть 'accepted' или 'rejected'"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            SELECT a.project_id, a.student_id, a.status,
+                   p.id_tutor, p.max_students
+            FROM applications a
+            JOIN projects p ON p.id = a.project_id
+            WHERE a.id = %s
+            FOR UPDATE OF p
+        """, (app_id_str,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"error": "Заявка не найдена"}), 404
+        if str(row['id_tutor']) != str(user_id):
+            return jsonify({"error": "Нет прав на изменение этой заявки"}), 403
+
+        if new_status == 'accepted' and row['status'] != 'accepted':
+            cur.execute("""
+                SELECT COUNT(*) AS cnt FROM applications
+                WHERE project_id = %s AND status = 'accepted'
+            """, (row['project_id'],))
+            accepted = cur.fetchone()['cnt']
+            limit = row['max_students'] or 1
+            if accepted >= limit:
+                return jsonify({"error": f"Мест нет: уже принято {accepted} из {limit}"}), 409
+
+        cur.execute("""
+            UPDATE applications SET status = %s, updated_at = NOW()
+            WHERE id = %s
+            RETURNING id, status, applied_at
+        """, (new_status, app_id_str))
+        updated = cur.fetchone()
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] update_application: {e}")
+        return jsonify({"error": "Не удалось обновить заявку"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    if new_status == 'accepted':
+        try:
+            ensure_project_chat(row['project_id'], row['id_tutor'], row['student_id'])
+        except Exception as e:
+            print(f"[ERROR] ensure_project_chat: {e}")
+        log_action(user_id, 'accept_application', f'Принята заявка {app_id} (API)')
+    else:
+        log_action(user_id, 'reject_application', f'Отклонена заявка {app_id} (API)')
+
+    return jsonify(dict(updated)), 200
 
 # ----- Запуск -----
 if __name__ == '__main__':
